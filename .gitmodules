@@ -1,0 +1,3 @@
+[submodule "src/regex"]
+	path = src/regex
+	url = https://github.com/rolandbernard/regex
