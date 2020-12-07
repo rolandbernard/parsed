@@ -1,0 +1,46 @@
+
+%{
+
+#include <stdlib.h>
+
+}
+
+%return { double }
+%ignore /\s/
+
+number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ { $return = strtod(parsedTokenToString($term[0]), NULL); }
+
+expr_base := number
+
+expr_pow := expr_base '^' expr_pow { $return = pow($nonterm[0], $nonterm[1]); }
+          | expr_base
+
+expr_mul := expr_mul '*' expr_pow { $return = $nonterm[0] * $nonterm[1]; }
+          | expr_mul '/' expr_pow { $return = $nonterm[0] / $nonterm[1]; }
+          | expr_pow
+
+expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
+          | expr_add '-' expr_mul { $return = $nonterm[0] - $nonterm[1]; }
+          | expr_mul
+
+expr := expr_mul
+
+%{
+
+#include <stdio.h>
+
+int main(int argc, char** argv) {
+    ParsedScanner scanner;
+    initParsedScanner(&scanner, argv[1]);
+    double ret = NULL;
+    if(!parsed_expr(&scanner, *ret)) {
+        fprintf(stderr, "Failed to parse.\n");
+    } else {
+        fprintf(stdout, "%lg\n", ret);
+    }
+    freeParsedScabber(&scanner);
+    return 0;
+}
+
+}
+
