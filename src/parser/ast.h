@@ -11,6 +11,7 @@ typedef enum {
     AST_INLINE_C,
     AST_IDENTIFIER,
     AST_SEQUENCE,
+    AST_SETTING,
 } AstType;
 
 typedef struct {
@@ -26,7 +27,7 @@ typedef struct {
 typedef struct {
     AST_BASE
     const char* ident;
-    int len;
+    int ident_len;
 } AstIdentifier;
 
 typedef struct {
@@ -52,4 +53,18 @@ typedef struct {
     const char* src;
     int len;
 } AstInlineC;
+
+typedef struct {
+    AST_BASE
+    bool is_regex;
+    const char* pattern;
+    int pattern_len;
+} AstToken;
+
+typedef struct {
+    AST_BASE
+    const char* name;
+    int name_len;
+    Ast* value;
+} AstSetting;
 
