@@ -1,0 +1,140 @@
+
+#include <stdlib.h>
+
+#include "ast.h"
+
+void freeAst(Ast* ast) {
+    switch (ast->type) {
+    case AST_ROOT: {
+        AstRoot* root = (AstRoot*)ast;
+        for (int i = 0; i < root->child_count; i++) {
+            freeAst(root->children[i]);
+        }
+        free(root->children);
+    } break;
+    case AST_IDENTIFIER:
+        break;
+    case AST_DEFINITION: {
+        AstDefinition* def = (AstDefinition*)ast;
+        freeAst(def->ident);
+        freeAst(def->definition);
+    } break;
+    case AST_OPTION: {
+        AstOption* opt = (AstOption*)ast;
+        for (int i = 0; i < opt->option_count; i++) {
+            freeAst(opt->options[i]);
+        }
+        free(opt->options);
+    } break;
+    case AST_TOKEN:
+        break;
+    case AST_INLINE_C:
+        break;
+    case AST_SEQUENCE: {
+        AstSequence* seq = (AstSequence*)ast;
+        for (int i = 0; i < seq->child_count; i++) {
+            freeAst(seq->children[i]);
+        }
+        free(seq->children);
+    } break;
+    case AST_SETTING: {
+        AstSetting* set = (AstSetting*)ast;
+        freeAst(set->value);
+    } break;
+    default:
+        break;
+    }
+}
+
+AstRoot* createAstRoot() {
+    AstRoot* ret = (AstRoot*)malloc(sizeof(AstRoot));
+    ret->type = AST_ROOT;
+    ret->child_capacity = 0;
+    ret->child_count = 0;
+    ret->children = NULL;
+    return ret;
+}
+
+static inline void addToDynamicAstArray(Ast*** data, int* count, int* capacity, Ast* value) {
+    if(*count == *capacity) {
+        if(*capacity == 0) {
+            *capacity = 4;
+        } else {
+            *capacity *= 2;
+        }
+        *data = (Ast**)realloc(*data, sizeof(Ast*) * *capacity);
+    }
+    (*data)[*count] = value;
+}
+
+void addChildToAstRoot(AstRoot* root, Ast* child) {
+    addToDynamicAstArray(&root->children, &root->child_count, &root->child_capacity, child);
+}
+
+AstIdentifier* createAstIdentifier(const char* str, int len) {
+    AstIdentifier* ret = (AstIdentifier*)malloc(sizeof(AstIdentifier));
+    ret->type = AST_IDENTIFIER;
+    ret->ident = str;
+    ret->ident_len = len;
+    return ret;
+}
+
+AstDefinition* createAstDefinition(AstIdentifier* ident, Ast* def) {
+    AstDefinition* ret = (AstDefinition*)malloc(sizeof(AstDefinition));
+    ret->type = AST_DEFINITION;
+    ret->ident = ident;
+    ret->definition = def;
+    return ret;
+}
+
+AstOption* createAstOption() {
+    AstOption* ret = (AstOption*)malloc(sizeof(AstOption));
+    ret->type = AST_OPTION;
+    ret->option_capacity = 0;
+    ret->option_count = 0;
+    ret->options = NULL;
+    return ret;
+}
+
+void addOptionToAstOption(AstOption* ast, Ast* child) {
+    addToDynamicAstArray(&ast->options, &ast->option_count, &ast->option_capacity, child);
+}
+
+AstToken* createAstToken(bool is_regex, const char* str, int len) {
+    AstToken* ret = (AstToken*)malloc(sizeof(AstToken));
+    ret->type = AST_TOKEN;
+    ret->is_regex = is_regex;
+    ret->pattern = str;
+    ret->pattern_len = len;
+    return ret;
+}
+
+AstInlineC* createAstInlineC(const char* str, int len) {
+    AstInlineC* ret = (AstInlineC*)malloc(sizeof(AstInlineC));
+    ret->type = AST_INLINE_C;
+    ret->src = str;
+    ret->len = len;
+    return ret;
+}
+
+AstSequence* createSequence() {
+    AstSequence* ret = (AstSequence*)malloc(sizeof(AstSequence));
+    ret->type = AST_SEQUENCE;
+    ret->child_capacity = 0;
+    ret->child_count = 0;
+    ret->children = NULL;
+    return ret;
+}
+
+void addChildToAstSequence(AstSequence* seq, Ast* child) {
+    addToDynamicAstArray(&seq->children, &seq->child_count, &seq->child_capacity, child);
+}
+
+AstSetting* createSetting(const char* name, int name_len, Ast* value) {
+    AstSetting* ret = (AstSetting*)malloc(sizeof(AstSetting));
+    ret->type = AST_SETTING;
+    ret->name = name;
+    ret->name_len = name_len;
+    ret->value = value;
+    return ret;
+}

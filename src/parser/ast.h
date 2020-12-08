@@ -5,11 +5,11 @@
 
 typedef enum {
     AST_ROOT,
+    AST_IDENTIFIER,
     AST_DEFINITION,
     AST_OPTION,
     AST_TOKEN,
     AST_INLINE_C,
-    AST_IDENTIFIER,
     AST_SEQUENCE,
     AST_SETTING,
 } AstType;
@@ -22,6 +22,7 @@ typedef struct {
     AST_BASE
     Ast** children;
     int child_count;
+    int child_capacity;
 } AstRoot;
 
 typedef struct {
@@ -40,12 +41,14 @@ typedef struct {
     AST_BASE
     Ast** options;
     int option_count;
+    int option_capacity;
 } AstOption;
 
 typedef struct {
     AST_BASE
     Ast** children;
     int child_count;
+    int child_capacity;
 } AstSequence;
 
 typedef struct {
@@ -68,3 +71,26 @@ typedef struct {
     Ast* value;
 } AstSetting;
 
+void freeAst(Ast* ast);
+
+AstRoot* createAstRoot();
+
+void addChildToAstRoot(AstRoot* root, Ast* child);
+
+AstIdentifier* createAstIdentifier(const char* str, int len);
+
+AstDefinition* createAstDefinition(AstIdentifier* ident, Ast* def);
+
+AstOption* createAstOption();
+
+void addOptionToAstOption(AstOption* ast, Ast* child);
+
+AstToken* createAstToken(bool is_regex, const char* str, int len);
+
+AstInlineC* createAstInlineC(const char* str, int len);
+
+AstSequence* createSequence();
+
+void addChildToAstSequence(AstSequence* seq, Ast* child);
+
+AstSetting* createSetting(const char* name, int name_len, Ast* value);
