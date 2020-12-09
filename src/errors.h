@@ -29,7 +29,7 @@ void addError(ErrorContext* context, const char* message, int offset, ErrorLevel
 
 void addErrorf(ErrorContext* context, int offset, ErrorLevel level, const char* messag, ...);
 
-void printErrors(FILE* file, ErrorContext* context, const char* file_content);
+void printErrors(FILE* file, ErrorContext* context, const char* file_content, const char* filename);
 
 int getErrorCount(ErrorContext* context);
 
