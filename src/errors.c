@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include "errors.h"
 
