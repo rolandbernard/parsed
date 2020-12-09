@@ -1,3 +1,5 @@
+#ifndef _AST_H_
+#define _AST_H_
 
 #include <stdbool.h>
 
@@ -94,3 +96,5 @@ AstSequence* createSequence();
 void addChildToAstSequence(AstSequence* seq, Ast* child);
 
 AstSetting* createSetting(const char* name, int name_len, Ast* value);
+
+#endif
