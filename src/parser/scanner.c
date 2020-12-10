@@ -67,6 +67,9 @@ static int determenNextToken(const char* src, TokenType* out) {
     } else if(src[0] == ':' && src[1] == '=') {
         len = 2;
         *out = TOKEN_DEFINE;
+    } else if(src[0] == 0) {
+        len = 0;
+        *out = TOKEN_EOF;
     }
     return len;
 }
@@ -102,6 +105,10 @@ bool acceptToken(Scanner* scanner, TokenType type, Token* out) {
     } else {
         return false;
     }
+}
+
+int getOffsetOfNextToken(Scanner* scanner) {
+    return getNextToken(scanner).offset;
 }
 
 void freeScanner(Scanner* scanner) {

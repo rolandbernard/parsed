@@ -15,6 +15,7 @@ typedef enum {
     TOKEN_UNCLOSED_STRING,
     TOKEN_UNCLOSED_REGEX,
     TOKEN_UNCLOSED_C_SOURCE,
+    TOKEN_EOF,
 } TokenType;
 
 typedef struct {
@@ -38,6 +39,8 @@ Token getNextToken(Scanner* scanner);
 Token consumeNextToken(Scanner* scanner);
 
 bool acceptToken(Scanner* scanner, TokenType type, Token* out);
+
+int getOffsetOfNextToken(Scanner* scanner);
 
 void freeScanner(Scanner* scanner);
 
