@@ -97,7 +97,7 @@ AstOption* createAstOption() {
 }
 
 void addOptionToAstOption(AstOption* ast, Ast* child) {
-    addToDynamicAstArray(&ast->options, &ast->option_count, &ast->option_capacity, child);
+    addToDynamicAstArray((Ast**)&ast->options, &ast->option_count, &ast->option_capacity, child);
 }
 
 AstToken* createAstToken(bool is_regex, const char* str, int len) {
@@ -127,7 +127,7 @@ AstSequence* createSequence() {
 }
 
 void addChildToAstSequence(AstSequence* seq, Ast* child) {
-    addToDynamicAstArray(&seq->children, &seq->child_count, &seq->child_capacity, child);
+    addToDynamicAstArray((Ast**)&seq->children, &seq->child_count, &seq->child_capacity, child);
 }
 
 AstSetting* createSetting(const char* name, int name_len, Ast* value) {

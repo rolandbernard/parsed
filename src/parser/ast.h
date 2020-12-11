@@ -35,23 +35,23 @@ typedef struct {
 
 typedef struct {
     AST_BASE
-    AstIdentifier* ident;
-    Ast* definition;
-} AstDefinition;
+    Ast** children;
+    int child_count;
+    int child_capacity;
+} AstSequence;
 
 typedef struct {
     AST_BASE
-    Ast** options;
+    AstSequence** options;
     int option_count;
     int option_capacity;
 } AstOption;
 
 typedef struct {
     AST_BASE
-    Ast** children;
-    int child_count;
-    int child_capacity;
-} AstSequence;
+    AstIdentifier* ident;
+    AstOption* definition;
+} AstDefinition;
 
 typedef struct {
     AST_BASE
