@@ -25,26 +25,78 @@ AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
 }
 
 AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
-    return NULL;
+    Token token;
+    if(acceptToken(scanner, TOKEN_C_SOURCE, &token)) {
+        return createAstInlineC(token.start + 1, token.len - 2);
+    } else {
+        return NULL;
+    }
 }
 
 AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
-    return NULL;
+    AstSequence* ret = createAstSequence();
+    Ast* elem;
+    while((elem = parseToken(scanner, error_context)) != NULL) {
+        if(elem == PARSER_ERROR) {
+            freeAst((Ast*)ret);
+            return PARSER_ERROR;
+        } else {
+            addChildToAstSequence(ret, elem);
+        }
+    }
+    if(ret->child_count == 0) {
+        freeAst((Ast*)ret);
+        return NULL;
+    } else {
+        elem = parseInlineC(scanner, error_context);
+        if(elem != NULL) {
+            if(elem == PARSER_ERROR) {
+                freeAst((Ast*)ret);
+                return PARSER_ERROR;
+            } else {
+                addChildToAstSequence(ret, elem);
+            }
+        }
+        return ret;
+    }
 }
 
 AstOption* parseOption(Scanner* scanner, ErrorContext* error_context) {
-    return NULL;
+    AstOption* ret = createAstOption();
+    Ast* elem;
+    while((ret->option_count == 0 || acceptToken(scanner, TOKEN_ALTERNATIVE, NULL))) {
+        elem = parseSequence(scanner, error_context);
+        if(elem == NULL) {
+            freeAst((Ast*)ret);
+            if(ret->option_count == 0) {
+                return NULL;
+            } else {
+                addError(error_context, "Expected an expantions", getOffsetOfNextToken(scanner), ERROR);
+                return PARSER_ERROR;
+            }
+        } else if(elem == PARSER_ERROR) {
+            freeAst((Ast*)ret);
+            return PARSER_ERROR;
+        } else {
+            addOptionToAstOption(ret, elem);
+        }
+    }
+    return ret;
 }
 
 AstDefinition* parseDefinition(Scanner* scanner, ErrorContext* error_context) {
     return NULL;
 }
 
-Ast* parseRootElement(Scanner* scanner, ErrorContext* error_context) {
+AstInlineC* parseGlobalInlineC(Scanner* scanner, ErrorContext* error_context) {
     return NULL;
 }
 
 AstSetting* parseSetting(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+Ast* parseRootElement(Scanner* scanner, ErrorContext* error_context) {
     return NULL;
 }
 
