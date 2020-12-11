@@ -16,13 +16,13 @@ void freeAst(Ast* ast) {
         break;
     case AST_DEFINITION: {
         AstDefinition* def = (AstDefinition*)ast;
-        freeAst(def->ident);
-        freeAst(def->definition);
+        freeAst((Ast*)def->ident);
+        freeAst((Ast*)def->definition);
     } break;
     case AST_OPTION: {
         AstOption* opt = (AstOption*)ast;
         for (int i = 0; i < opt->option_count; i++) {
-            freeAst(opt->options[i]);
+            freeAst((Ast*)opt->options[i]);
         }
         free(opt->options);
     } break;
@@ -79,7 +79,7 @@ AstIdentifier* createAstIdentifier(const char* str, int len) {
     return ret;
 }
 
-AstDefinition* createAstDefinition(AstIdentifier* ident, Ast* def) {
+AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def) {
     AstDefinition* ret = (AstDefinition*)malloc(sizeof(AstDefinition));
     ret->type = AST_DEFINITION;
     ret->ident = ident;
@@ -96,8 +96,8 @@ AstOption* createAstOption() {
     return ret;
 }
 
-void addOptionToAstOption(AstOption* ast, Ast* child) {
-    addToDynamicAstArray((Ast**)&ast->options, &ast->option_count, &ast->option_capacity, child);
+void addOptionToAstOption(AstOption* ast, AstSequence* child) {
+    addToDynamicAstArray((Ast***)&ast->options, &ast->option_count, &ast->option_capacity, (Ast*)child);
 }
 
 AstToken* createAstToken(bool is_regex, const char* str, int len) {
@@ -127,7 +127,7 @@ AstSequence* createAstSequence() {
 }
 
 void addChildToAstSequence(AstSequence* seq, Ast* child) {
-    addToDynamicAstArray((Ast**)&seq->children, &seq->child_count, &seq->child_capacity, child);
+    addToDynamicAstArray((Ast***)&seq->children, &seq->child_count, &seq->child_capacity, (Ast*)child);
 }
 
 AstSetting* createAstSetting(const char* name, int name_len, Ast* value) {

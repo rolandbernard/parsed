@@ -81,11 +81,11 @@ void addChildToAstRoot(AstRoot* root, Ast* child);
 
 AstIdentifier* createAstIdentifier(const char* str, int len);
 
-AstDefinition* createAstDefinition(AstIdentifier* ident, Ast* def);
+AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def);
 
 AstOption* createAstOption();
 
-void addOptionToAstOption(AstOption* ast, Ast* child);
+void addOptionToAstOption(AstOption* ast, AstSequence* child);
 
 AstToken* createAstToken(bool is_regex, const char* str, int len);
 

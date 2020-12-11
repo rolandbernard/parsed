@@ -36,7 +36,7 @@ AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
 AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
     AstSequence* ret = createAstSequence();
     Ast* elem;
-    while((elem = parseToken(scanner, error_context) || parseIdentifier(scanner, error_context)) != NULL) {
+    while((elem = (Ast*)parseToken(scanner, error_context)) != NULL || (elem = (Ast*)parseIdentifier(scanner, error_context)) != NULL) {
         if(elem == PARSER_ERROR) {
             freeAst((Ast*)ret);
             return PARSER_ERROR;
@@ -48,7 +48,7 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
         freeAst((Ast*)ret);
         return NULL;
     } else {
-        elem = parseInlineC(scanner, error_context);
+        elem = (Ast*)parseInlineC(scanner, error_context);
         if(elem != NULL) {
             if(elem == PARSER_ERROR) {
                 freeAst((Ast*)ret);
@@ -63,7 +63,7 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
 
 AstOption* parseOption(Scanner* scanner, ErrorContext* error_context) {
     AstOption* ret = createAstOption();
-    Ast* elem;
+    AstSequence* elem;
     while((ret->option_count == 0 || acceptToken(scanner, TOKEN_ALTERNATIVE, NULL))) {
         elem = parseSequence(scanner, error_context);
         if(elem == NULL) {
@@ -110,20 +110,23 @@ AstDefinition* parseDefinition(Scanner* scanner, ErrorContext* error_context) {
     }
 }
 
-AstInlineC* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_context) {
+Ast* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_context) {
     if(acceptToken(scanner, TOKEN_PERCENT, NULL)) {
         Token next = getNextToken(scanner);
         if(next.type == TOKEN_C_SOURCE) {
-            return createAstInlineC(next.start + 1, next.len - 2);
+            return (Ast*)createAstInlineC(next.start + 1, next.len - 2);
         } else if(next.type == TOKEN_IDENTIFIER) {
-            Ast* value = parseToken(scanner, error_context) || parseInlineC(scanner, error_context);
+            Ast* value = (Ast*)parseToken(scanner, error_context);
+            if(value == NULL) {
+                value = (Ast*)parseInlineC(scanner, error_context);
+            }
             if(value == PARSER_ERROR) {
                 return PARSER_ERROR;
             } else if(value == NULL) {
                 addError(error_context, "Expected a settings value (Token or C code)", getOffsetOfNextToken(scanner), ERROR);
                 return PARSER_ERROR;
             } else {
-                return createAstSetting(next.start, next.len, value);
+                return (Ast*)createAstSetting(next.start, next.len, value);
             }
         } else {
             addError(error_context, "Expected a setting name or c code", getOffsetOfNextToken(scanner), ERROR);
@@ -135,8 +138,11 @@ AstInlineC* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_co
 }
 
 Ast* parseRootElement(Scanner* scanner, ErrorContext* error_context) {
-    return parseGlobalInlineCOrSetting(scanner, error_context)
-        || parseDefinition(scanner, error_context);
+    Ast* ret = (Ast*)parseGlobalInlineCOrSetting(scanner, error_context);
+    if(ret == NULL) {
+        ret = (Ast*)parseDefinition(scanner, error_context);
+    }
+    return ret;
 }
 
 AstRoot* parseRoot(Scanner* scanner, ErrorContext* error_context) {
@@ -173,12 +179,12 @@ Ast* parseGrammar(const char* src, ErrorContext* error_context) {
         } else {
             addError(error_context, "Expected end of file", getOffsetOfNextToken(&scanner), ERROR);
         }
-        freeAst(ret);
+        freeAst((Ast*)ret);
         freeScanner(&scanner);
         freeAst((Ast*)ret);
         return NULL;
     } else {
         freeScanner(&scanner);
-        return ret;
+        return (Ast*)ret;
     }
 }
