@@ -30,15 +30,14 @@ expr := expr_mul
 #include <stdio.h>
 
 int main(int argc, char** argv) {
-    ParsedScanner scanner;
-    initParsedScanner(&scanner, argv[1]);
+    ParsedTokens tokens = parsedTokenize(argv[1]);
     double ret = NULL;
-    if(!parsed_expr(&scanner, *ret)) {
+    if(!parsed_expr(tokens, *ret)) {
         fprintf(stderr, "Failed to parse.\n");
     } else {
         fprintf(stdout, "%lg\n", ret);
     }
-    freeParsedScabber(&scanner);
+    freeTokens(tokens);
     return 0;
 }
 
