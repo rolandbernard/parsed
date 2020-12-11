@@ -21,7 +21,7 @@ BIN=$(patsubst %,$(BDIR)/%,$(_BIN))
 .PHONY: all
 all: $(BIN)
 
-$(BDIR)/$(_BIN): $(OBJ) $(TEST)
+$(BDIR)/$(_BIN): $(OBJ)
 	mkdir -p `dirname $@`
 	$(LINK) $(CFLAGS) -o $@ $^ $(LIBS)
 
