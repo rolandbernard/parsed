@@ -10,7 +10,7 @@ DFLAGS=-g -O0 -fsanitize=address,leak,undefined
 RFLAGS=-O3
 CFLAGS=-I$(IDIR) -I$(IDIR)/regex/src -Wall $(DFLAGS)
 
-_SRC=$(wildcard $(SDIR)/regex/src/*.c) $(wildcard $(SDIR)/*.c)
+_SRC=$(wildcard $(SDIR)/regex/src/*.c) $(wildcard $(SDIR)/*.c) $(wildcard $(SDIR)/*/*.c)
 OBJ=$(patsubst $(SDIR)/%.c,$(ODIR)/%.o,$(_SRC))
 
 DEPS=$(wildcard $(IDIR)/regex/src/*.h) $(wildcard $(IDIR)/*.h)
