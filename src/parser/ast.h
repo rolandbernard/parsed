@@ -91,10 +91,10 @@ AstToken* createAstToken(bool is_regex, const char* str, int len);
 
 AstInlineC* createAstInlineC(const char* str, int len);
 
-AstSequence* createSequence();
+AstSequence* createAstSequence();
 
 void addChildToAstSequence(AstSequence* seq, Ast* child);
 
-AstSetting* createSetting(const char* name, int name_len, Ast* value);
+AstSetting* createAstSetting(const char* name, int name_len, Ast* value);
 
 #endif

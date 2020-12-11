@@ -117,7 +117,7 @@ AstInlineC* createAstInlineC(const char* str, int len) {
     return ret;
 }
 
-AstSequence* createSequence() {
+AstSequence* createAstSequence() {
     AstSequence* ret = (AstSequence*)malloc(sizeof(AstSequence));
     ret->type = AST_SEQUENCE;
     ret->child_capacity = 0;
@@ -130,7 +130,7 @@ void addChildToAstSequence(AstSequence* seq, Ast* child) {
     addToDynamicAstArray((Ast**)&seq->children, &seq->child_count, &seq->child_capacity, child);
 }
 
-AstSetting* createSetting(const char* name, int name_len, Ast* value) {
+AstSetting* createAstSetting(const char* name, int name_len, Ast* value) {
     AstSetting* ret = (AstSetting*)malloc(sizeof(AstSetting));
     ret->type = AST_SETTING;
     ret->name = name;
