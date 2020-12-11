@@ -5,11 +5,23 @@
 #define PARSER_ERROR (void*)1
 
 AstToken* parseToken(Scanner* scanner, ErrorContext* error_context) {
-    return NULL;
+    Token token;
+    if(acceptToken(scanner, TOKEN_STRING_TOKEN, &token)) {
+        return createAstToken(false, token.start + 1, token.len - 2);
+    } else if(acceptToken(scanner, TOKEN_REGEX_TOKEN, &token)) {
+        return createAstToken(true, token.start + 1, token.len - 2);
+    } else {
+        return NULL;
+    }
 }
 
 AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
-    return NULL;
+    Token token;
+    if(acceptToken(scanner, TOKEN_IDENTIFIER, &token)) {
+        return createAstIdentifier(token.start, token.len);
+    } else {
+        return NULL;
+    }
 }
 
 AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
@@ -58,8 +70,19 @@ Ast* parseGrammar(const char* src, ErrorContext* error_context) {
         freeScanner(&scanner);
         return NULL;
     } else if(!acceptToken(&scanner, TOKEN_EOF, NULL)) {
+        Token next = getNextToken(&scanner);
+        if(next.type == TOKEN_INVALID) {
+            addError(error_context, "Found an invalid token", getOffsetOfNextToken(&scanner), ERROR);
+        } else if(next.type == TOKEN_UNCLOSED_STRING) {
+            addError(error_context, "Found an unclosed string", getOffsetOfNextToken(&scanner), ERROR);
+        } else if(next.type == TOKEN_UNCLOSED_REGEX) {
+            addError(error_context, "Found an unclosed regex", getOffsetOfNextToken(&scanner), ERROR);
+        } else if(next.type == TOKEN_UNCLOSED_C_SOURCE) {
+            addError(error_context, "Found an unclosed inline c block", getOffsetOfNextToken(&scanner), ERROR);
+        } else {
+            addError(error_context, "Expected end of file", getOffsetOfNextToken(&scanner), ERROR);
+        }
         freeAst(ret);
-        addError(error_context, "Expected end of file", getOffsetOfNextToken(&scanner), ERROR);
         freeScanner(&scanner);
         freeAst((Ast*)ret);
         return NULL;
