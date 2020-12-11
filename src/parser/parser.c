@@ -4,7 +4,35 @@
 
 #define PARSER_ERROR (void*)1
 
+AstToken* parseToken(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstOption* parseOption(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstDefinition* parseDefinition(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
 Ast* parseRootElement(Scanner* scanner, ErrorContext* error_context) {
+    return NULL;
+}
+
+AstSetting* parseSetting(Scanner* scanner, ErrorContext* error_context) {
     return NULL;
 }
 
