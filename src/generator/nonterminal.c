@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "nonterminal.h"
 
@@ -38,7 +39,11 @@ static int findEntry(const NonTerminal* data, int capacity, const char* name, in
     if(capacity != 0) {
         int index = hashString(name, name_len) % capacity;
         while (data[index].name != NULL) {
-            if (data[index].name != DELETED && strcmp(data[index].name, name) == 0) {
+            if (
+                data[index].name != DELETED
+                && data[index].name_len == name_len
+                && strncmp(data[index].name, name,  name_len) == 0
+            ) {
                 return index;
             }
             index = (index + 1) % capacity;
