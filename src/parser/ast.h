@@ -31,6 +31,7 @@ typedef struct {
     AST_BASE
     const char* ident;
     int ident_len;
+    int id;
 } AstIdentifier;
 
 typedef struct {
@@ -51,6 +52,7 @@ typedef struct {
     AST_BASE
     AstIdentifier* ident;
     AstOption* definition;
+    int id;
 } AstDefinition;
 
 typedef struct {
@@ -64,6 +66,7 @@ typedef struct {
     bool is_regex;
     const char* pattern;
     int pattern_len;
+    int id;
 } AstToken;
 
 typedef struct {
