@@ -26,8 +26,8 @@ Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, i
 
 void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex);
 
-typedef void (*TerminalTableIterationFunction)(Terminal);
+typedef void (*TerminalTableIterationFunction)(Terminal, void*);
 
-void forEachInTerminalTable(TerminalTable* table, TerminalTableIterationFunction func);
+void forEachInTerminalTable(TerminalTable* table, TerminalTableIterationFunction func, void* user_data);
 
 #endif

@@ -125,10 +125,10 @@ void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int patt
     }
 }
 
-void forEachInTerminalTable(TerminalTable* table, TerminalTableIterationFunction func) {
+void forEachInTerminalTable(TerminalTable* table, TerminalTableIterationFunction func, void* user_data) {
     for(int i = 0; i < table->capacity; i++) {
         if(table->data[i].pattern != NULL && table->data[i].pattern != DELETED) {
-            func(table->data[i]);
+            func(table->data[i], user_data);
         }
     }
 }

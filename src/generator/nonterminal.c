@@ -122,10 +122,10 @@ void deleteFromNonTerminalTable(NonTerminalTable* table, const char* name, int n
     }
 }
 
-void forEachInNonTerminalTable(NonTerminalTable* table, NonTerminalTableIterationFunction func) {
+void forEachInNonTerminalTable(NonTerminalTable* table, NonTerminalTableIterationFunction func, void* user_data) {
     for(int i = 0; i < table->capacity; i++) {
         if(table->data[i].name != NULL && table->data[i].name != DELETED) {
-            func(table->data[i]);
+            func(table->data[i], user_data);
         }
     }
 }

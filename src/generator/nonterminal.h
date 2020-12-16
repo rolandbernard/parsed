@@ -23,8 +23,8 @@ NonTerminal getFromNonTerminalTable(const NonTerminalTable* table, const char* n
 
 void deleteFromNonTerminalTable(NonTerminalTable* table, const char* name, int name_len);
 
-typedef void (*NonTerminalTableIterationFunction)(NonTerminal);
+typedef void (*NonTerminalTableIterationFunction)(NonTerminal, void*);
 
-void forEachInNonTerminalTable(NonTerminalTable* table, NonTerminalTableIterationFunction func);
+void forEachInNonTerminalTable(NonTerminalTable* table, NonTerminalTableIterationFunction func, void* user_data);
 
 #endif
