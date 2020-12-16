@@ -5,8 +5,8 @@
 
 typedef struct {
     bool is_regex;
-    const char* name;
-    int name_len;
+    const char* pattern;
+    int pattern_len;
     int id;
 } Terminal;
 
@@ -20,10 +20,10 @@ void initTerminalTable(TerminalTable* table);
 
 void freeTerminalTable(TerminalTable* table);
 
-int addToTerminalTable(TerminalTable* table, Terminal non_terminal);
+int addToTerminalTable(TerminalTable* table, Terminal terminal);
 
-Terminal getFromTerminalTable(const TerminalTable* table, const char* name, int name_len, bool is_regex);
+Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex);
 
-void deleteFromTerminalTable(TerminalTable* table, const char* name, int name_len, bool is_regex);
+void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex);
 
 #endif

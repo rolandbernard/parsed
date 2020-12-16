@@ -25,26 +25,26 @@ static unsigned long hashString(const char* str, int len, bool change_primes) {
     return hash;
 }
 
-static void insertIntoData(Terminal* data, int capacity, const char* name, int name_len, int id, bool is_regex) {
-    int index = hashString(name, name_len, is_regex) % capacity;
-    while(data[index].name != NULL && data[index].name != DELETED) {
+static void insertIntoData(Terminal* data, int capacity, const char* pattern, int pattern_len, int id, bool is_regex) {
+    int index = hashString(pattern, pattern_len, is_regex) % capacity;
+    while(data[index].pattern != NULL && data[index].pattern != DELETED) {
         index = (index + 1) % capacity;
     }
-    data[index].name = name;
-    data[index].name_len = name_len;
+    data[index].pattern = pattern;
+    data[index].pattern_len = pattern_len;
     data[index].is_regex = is_regex;
     data[index].id = id;
 }
 
-static int findEntry(const Terminal* data, int capacity, const char* name, int name_len, bool is_regex) {
+static int findEntry(const Terminal* data, int capacity, const char* pattern, int pattern_len, bool is_regex) {
     if(capacity != 0) {
-        int index = hashString(name, name_len, is_regex) % capacity;
-        while (data[index].name != NULL) {
+        int index = hashString(pattern, pattern_len, is_regex) % capacity;
+        while (data[index].pattern != NULL) {
             if (
-                data[index].name != DELETED
+                data[index].pattern != DELETED
                 && data[index].is_regex == is_regex
-                && data[index].name_len == name_len
-                && strncmp(data[index].name, name,  name_len) == 0
+                && data[index].pattern_len == pattern_len
+                && strncmp(data[index].pattern, pattern,  pattern_len) == 0
             ) {
                 return index;
             }
@@ -56,8 +56,8 @@ static int findEntry(const Terminal* data, int capacity, const char* name, int n
 
 static void rehashHashTable(const Terminal* old_data, int old_capacity, const Terminal* new_data, int new_capacity) {
     for(int i = 0; i < old_capacity; i++) {
-        if(old_data[i].name != NULL && old_data[i].name != DELETED) {
-            insertIntoData(new_data, new_capacity, old_data[i].name, old_data[i].name_len, old_data[i].id, old_data[i].is_regex);
+        if(old_data[i].pattern != NULL && old_data[i].pattern != DELETED) {
+            insertIntoData(new_data, new_capacity, old_data[i].pattern, old_data[i].pattern_len, old_data[i].id, old_data[i].is_regex);
         }
     }
 }
@@ -89,11 +89,11 @@ static void checkForSizeShrink(TerminalTable* table) {
     }
 }
 
-int addToNonTerminalTable(TerminalTable* table, Terminal non_terminal) {
+int addToTerminalTable(TerminalTable* table, Terminal non_terminal) {
     checkForSizeGrowth(table);
-    int index = findEntry(table->data, table->capacity, non_terminal.name, non_terminal.name_len, non_terminal.is_regex);
+    int index = findEntry(table->data, table->capacity, non_terminal.pattern, non_terminal.pattern_len, non_terminal.is_regex);
     if (index == -1) {
-        insertIntoData(table->data, table->capacity, non_terminal.name, non_terminal.name_len, non_terminal.id || (table->count + 1), non_terminal.is_regex);
+        insertIntoData(table->data, table->capacity, non_terminal.pattern, non_terminal.pattern_len, non_terminal.id || (table->count + 1), non_terminal.is_regex);
         table->count++;
         return table->count;
     } else {
@@ -101,14 +101,14 @@ int addToNonTerminalTable(TerminalTable* table, Terminal non_terminal) {
     }
 }
 
-Terminal getFromNonTerminalTable(const TerminalTable* table, const char* name, int name_len, bool is_regex) {
-    int index = findEntry(table->data, table->capacity, name, name_len, is_regex);
+Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex) {
+    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex);
     if (index != -1) {
         return table->data[index];
     } else {
         Terminal ret = {
-            .name = NULL,
-            .name_len = 0,
+            .pattern = NULL,
+            .pattern_len = 0,
             .is_regex = false,
             .id = 0,
         };
@@ -116,10 +116,10 @@ Terminal getFromNonTerminalTable(const TerminalTable* table, const char* name, i
     }
 }
 
-void deleteFromNonTerminalTable(TerminalTable* table, const char* name, int name_len, bool is_regex) {
-    int index = findEntry(table->data, table->capacity, name, name_len, is_regex);
+void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex) {
+    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex);
     if (index != -1) {
-        table->data[index].name = DELETED;
+        table->data[index].pattern = DELETED;
         table->count--;
         checkForSizeShrink(table);
     }
