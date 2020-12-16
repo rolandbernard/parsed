@@ -124,3 +124,12 @@ void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int patt
         checkForSizeShrink(table);
     }
 }
+
+void forEachInTerminalTable(TerminalTable* table, TerminalTableIterationFunction func) {
+    for(int i = 0; i < table->capacity; i++) {
+        if(table->data[i].pattern != NULL && table->data[i].pattern != DELETED) {
+            func(table->data[i]);
+        }
+    }
+}
+

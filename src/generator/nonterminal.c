@@ -121,3 +121,11 @@ void deleteFromNonTerminalTable(NonTerminalTable* table, const char* name, int n
         checkForSizeShrink(table);
     }
 }
+
+void forEachInNonTerminalTable(NonTerminalTable* table, NonTerminalTableIterationFunction func) {
+    for(int i = 0; i < table->capacity; i++) {
+        if(table->data[i].name != NULL && table->data[i].name != DELETED) {
+            func(table->data[i]);
+        }
+    }
+}
