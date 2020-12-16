@@ -54,7 +54,7 @@ static int findEntry(const Terminal* data, int capacity, const char* pattern, in
     return -1;
 }
 
-static void rehashHashTable(const Terminal* old_data, int old_capacity, const Terminal* new_data, int new_capacity) {
+static void rehashHashTable(const Terminal* old_data, int old_capacity, Terminal* new_data, int new_capacity) {
     for(int i = 0; i < old_capacity; i++) {
         if(old_data[i].pattern != NULL && old_data[i].pattern != DELETED) {
             insertIntoData(new_data, new_capacity, old_data[i].pattern, old_data[i].pattern_len, old_data[i].id, old_data[i].is_regex);

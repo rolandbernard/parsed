@@ -52,7 +52,7 @@ static int findEntry(const NonTerminal* data, int capacity, const char* name, in
     return -1;
 }
 
-static void rehashHashTable(const NonTerminal* old_data, int old_capacity, const NonTerminal* new_data, int new_capacity) {
+static void rehashHashTable(const NonTerminal* old_data, int old_capacity, NonTerminal* new_data, int new_capacity) {
     for(int i = 0; i < old_capacity; i++) {
         if(old_data[i].name != NULL && old_data[i].name != DELETED) {
             insertIntoData(new_data, new_capacity, old_data[i].name, old_data[i].name_len, old_data[i].id);
