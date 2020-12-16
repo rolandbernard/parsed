@@ -91,7 +91,7 @@ int addToNonTerminalTable(NonTerminalTable* table, NonTerminal non_terminal) {
     checkForSizeGrowth(table);
     int index = findEntry(table->data, table->capacity, non_terminal.name, non_terminal.name_len);
     if (index == -1) {
-        insertIntoData(table->data, table->capacity, non_terminal.name, non_terminal.name_len, non_terminal.id || (table->count + 1));
+        insertIntoData(table->data, table->capacity, non_terminal.name, non_terminal.name_len, table->count);
         table->count++;
         return table->count;
     } else {
@@ -107,7 +107,7 @@ NonTerminal getFromNonTerminalTable(const NonTerminalTable* table, const char* n
         NonTerminal ret = {
             .name = NULL,
             .name_len = 0,
-            .id = 0,
+            .id = -1,
         };
         return ret;
     }

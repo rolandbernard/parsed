@@ -89,11 +89,11 @@ static void checkForSizeShrink(TerminalTable* table) {
     }
 }
 
-int addToTerminalTable(TerminalTable* table, Terminal non_terminal) {
+int addToTerminalTable(TerminalTable* table, Terminal terminal) {
     checkForSizeGrowth(table);
-    int index = findEntry(table->data, table->capacity, non_terminal.pattern, non_terminal.pattern_len, non_terminal.is_regex);
+    int index = findEntry(table->data, table->capacity, terminal.pattern, terminal.pattern_len, terminal.is_regex);
     if (index == -1) {
-        insertIntoData(table->data, table->capacity, non_terminal.pattern, non_terminal.pattern_len, non_terminal.id || (table->count + 1), non_terminal.is_regex);
+        insertIntoData(table->data, table->capacity, terminal.pattern, terminal.pattern_len, table->count, terminal.is_regex);
         table->count++;
         return table->count;
     } else {
@@ -110,7 +110,7 @@ Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, i
             .pattern = NULL,
             .pattern_len = 0,
             .is_regex = false,
-            .id = 0,
+            .id = -1,
         };
         return ret;
     }
