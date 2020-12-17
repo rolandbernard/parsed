@@ -44,6 +44,7 @@ void freeAst(Ast* ast) {
     default:
         break;
     }
+    free(ast);
 }
 
 AstRoot* createAstRoot() {
