@@ -4,8 +4,9 @@
 
 #include "scanner.h"
 
-void initScanner(Scanner* scanner, const char* src) {
+void initScanner(Scanner* scanner, const char* src, int len) {
     scanner->src = src;
+    scanner->length = len;
     scanner->offset = 0;
     scanner->is_cached = false;
 }
@@ -67,23 +68,28 @@ static int determenNextToken(const char* src, TokenType* out) {
     } else if(src[0] == ':' && src[1] == '=') {
         len = 2;
         *out = TOKEN_DEFINE;
-    } else if(src[0] == 0) {
-        len = 0;
-        *out = TOKEN_EOF;
-    }
+    } 
     return len;
 }
 
 Token getNextToken(Scanner* scanner) {
     if(!scanner->is_cached) {
-        TokenType type;
-        int len = determenNextToken(scanner->src + scanner->offset, &type);
-        scanner->cached.start = scanner->src + scanner->offset;
-        scanner->cached.len = len;
-        scanner->cached.offset = scanner->offset;
-        scanner->cached.type = type;
-        scanner->offset += len;
-        scanner->is_cached = true;
+        if(scanner->offset >= scanner->length) {
+            scanner->cached.start = scanner->src + scanner->length;
+            scanner->cached.len = 0;
+            scanner->cached.offset = scanner->length;
+            scanner->cached.type = TOKEN_EOF;
+            scanner->is_cached = true;
+        } else {
+            TokenType type;
+            int len = determenNextToken(scanner->src + scanner->offset, &type);
+            scanner->cached.start = scanner->src + scanner->offset;
+            scanner->cached.len = len;
+            scanner->cached.offset = scanner->offset;
+            scanner->cached.type = type;
+            scanner->offset += len;
+            scanner->is_cached = true;
+        }
     }
     return scanner->cached;
 }

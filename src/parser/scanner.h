@@ -27,12 +27,13 @@ typedef struct {
 
 typedef struct {
     const char* src;
+    int length;
     int offset;
     bool is_cached;
     Token cached;
 } Scanner;
 
-void initScanner(Scanner* scanner, const char* src);
+void initScanner(Scanner* scanner, const char* src, int length);
 
 Token getNextToken(Scanner* scanner);
 
