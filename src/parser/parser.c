@@ -7,9 +7,9 @@
 AstToken* parseToken(Scanner* scanner, ErrorContext* error_context) {
     Token token;
     if(acceptToken(scanner, TOKEN_STRING_TOKEN, &token)) {
-        return createAstToken(false, token.start + 1, token.len - 2);
+        return createAstToken(false, token.start + 1, token.len - 2, token.offset);
     } else if(acceptToken(scanner, TOKEN_REGEX_TOKEN, &token)) {
-        return createAstToken(true, token.start + 1, token.len - 2);
+        return createAstToken(true, token.start + 1, token.len - 2, token.offset);
     } else {
         return NULL;
     }
@@ -18,7 +18,7 @@ AstToken* parseToken(Scanner* scanner, ErrorContext* error_context) {
 AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
     Token token;
     if(acceptToken(scanner, TOKEN_IDENTIFIER, &token)) {
-        return createAstIdentifier(token.start, token.len);
+        return createAstIdentifier(token.start, token.len, token.offset);
     } else {
         return NULL;
     }
@@ -27,7 +27,7 @@ AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
 AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
     Token token;
     if(acceptToken(scanner, TOKEN_C_SOURCE, &token)) {
-        return createAstInlineC(token.start + 1, token.len - 2);
+        return createAstInlineC(token.start + 1, token.len - 2, token.offset);
     } else {
         return NULL;
     }
@@ -67,10 +67,11 @@ AstOption* parseOption(Scanner* scanner, ErrorContext* error_context) {
     while((ret->option_count == 0 || acceptToken(scanner, TOKEN_ALTERNATIVE, NULL))) {
         elem = parseSequence(scanner, error_context);
         if(elem == NULL) {
-            freeAst((Ast*)ret);
             if(ret->option_count == 0) {
+                freeAst((Ast*)ret);
                 return NULL;
             } else {
+                freeAst((Ast*)ret);
                 addError(error_context, "Expected an expantions", getOffsetOfNextToken(scanner), ERROR);
                 return PARSER_ERROR;
             }
@@ -99,8 +100,13 @@ AstDefinition* parseDefinition(Scanner* scanner, ErrorContext* error_context) {
                     addError(error_context, "Expected a definition", getOffsetOfNextToken(scanner), ERROR);
                 }
                 return PARSER_ERROR;
+            } else if(!acceptToken(scanner, TOKEN_SEMICOLON, NULL)) {
+                addError(error_context, "Expected a semicolon", getOffsetOfNextToken(scanner), ERROR);
+                freeAst((Ast*)ident);
+                freeAst((Ast*)definition);
+                return PARSER_ERROR;
             } else {
-                return createAstDefinition(ident, definition);
+                return createAstDefinition(ident, definition, ident->offset);
             }
         } else {
             freeAst((Ast*)ident);
@@ -111,11 +117,14 @@ AstDefinition* parseDefinition(Scanner* scanner, ErrorContext* error_context) {
 }
 
 Ast* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_context) {
-    if(acceptToken(scanner, TOKEN_PERCENT, NULL)) {
+    Token first;
+    if(acceptToken(scanner, TOKEN_PERCENT, &first)) {
         Token next = getNextToken(scanner);
         if(next.type == TOKEN_C_SOURCE) {
-            return (Ast*)createAstInlineC(next.start + 1, next.len - 2);
+            acceptToken(scanner, TOKEN_C_SOURCE, NULL);
+            return (Ast*)createAstInlineC(next.start + 1, next.len - 2, first.offset);
         } else if(next.type == TOKEN_IDENTIFIER) {
+            acceptToken(scanner, TOKEN_IDENTIFIER, NULL);
             Ast* value = (Ast*)parseToken(scanner, error_context);
             if(value == NULL) {
                 value = (Ast*)parseInlineC(scanner, error_context);
@@ -126,7 +135,7 @@ Ast* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_context) 
                 addError(error_context, "Expected a settings value (Token or C code)", getOffsetOfNextToken(scanner), ERROR);
                 return PARSER_ERROR;
             } else {
-                return (Ast*)createAstSetting(next.start, next.len, value);
+                return (Ast*)createAstSetting(next.start, next.len, value, first.offset);
             }
         } else {
             addError(error_context, "Expected a setting name or c code", getOffsetOfNextToken(scanner), ERROR);

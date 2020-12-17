@@ -3,7 +3,8 @@
 
 #include <stdbool.h>
 
-#define AST_BASE AstType type;
+#define AST_BASE AstType type; \
+                 int offset;
 
 typedef enum {
     AST_ROOT,
@@ -82,22 +83,22 @@ AstRoot* createAstRoot();
 
 void addChildToAstRoot(AstRoot* root, Ast* child);
 
-AstIdentifier* createAstIdentifier(const char* str, int len);
+AstIdentifier* createAstIdentifier(const char* str, int len, int offset);
 
-AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def);
+AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def, int offset);
 
 AstOption* createAstOption();
 
 void addOptionToAstOption(AstOption* ast, AstSequence* child);
 
-AstToken* createAstToken(bool is_regex, const char* str, int len);
+AstToken* createAstToken(bool is_regex, const char* str, int len, int offset);
 
-AstInlineC* createAstInlineC(const char* str, int len);
+AstInlineC* createAstInlineC(const char* str, int len, int offset);
 
 AstSequence* createAstSequence();
 
 void addChildToAstSequence(AstSequence* seq, Ast* child);
 
-AstSetting* createAstSetting(const char* name, int name_len, Ast* value);
+AstSetting* createAstSetting(const char* name, int name_len, Ast* value, int offset);
 
 #endif

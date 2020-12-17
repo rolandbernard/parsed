@@ -66,25 +66,28 @@ static inline void addToDynamicAstArray(Ast*** data, int* count, int* capacity, 
         *data = (Ast**)realloc(*data, sizeof(Ast*) * *capacity);
     }
     (*data)[*count] = value;
+    (*count)++;
 }
 
 void addChildToAstRoot(AstRoot* root, Ast* child) {
     addToDynamicAstArray(&root->children, &root->child_count, &root->child_capacity, child);
 }
 
-AstIdentifier* createAstIdentifier(const char* str, int len) {
+AstIdentifier* createAstIdentifier(const char* str, int len, int offset) {
     AstIdentifier* ret = (AstIdentifier*)malloc(sizeof(AstIdentifier));
     ret->type = AST_IDENTIFIER;
     ret->ident = str;
     ret->ident_len = len;
+    ret->offset = offset;
     return ret;
 }
 
-AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def) {
+AstDefinition* createAstDefinition(AstIdentifier* ident, AstOption* def, int offset) {
     AstDefinition* ret = (AstDefinition*)malloc(sizeof(AstDefinition));
     ret->type = AST_DEFINITION;
     ret->ident = ident;
     ret->definition = def;
+    ret->offset = offset;
     return ret;
 }
 
@@ -101,20 +104,22 @@ void addOptionToAstOption(AstOption* ast, AstSequence* child) {
     addToDynamicAstArray((Ast***)&ast->options, &ast->option_count, &ast->option_capacity, (Ast*)child);
 }
 
-AstToken* createAstToken(bool is_regex, const char* str, int len) {
+AstToken* createAstToken(bool is_regex, const char* str, int len, int offset) {
     AstToken* ret = (AstToken*)malloc(sizeof(AstToken));
     ret->type = AST_TOKEN;
     ret->is_regex = is_regex;
     ret->pattern = str;
     ret->pattern_len = len;
+    ret->offset = offset;
     return ret;
 }
 
-AstInlineC* createAstInlineC(const char* str, int len) {
+AstInlineC* createAstInlineC(const char* str, int len, int offset) {
     AstInlineC* ret = (AstInlineC*)malloc(sizeof(AstInlineC));
     ret->type = AST_INLINE_C;
     ret->src = str;
     ret->len = len;
+    ret->offset = offset;
     return ret;
 }
 
@@ -131,11 +136,12 @@ void addChildToAstSequence(AstSequence* seq, Ast* child) {
     addToDynamicAstArray((Ast***)&seq->children, &seq->child_count, &seq->child_capacity, (Ast*)child);
 }
 
-AstSetting* createAstSetting(const char* name, int name_len, Ast* value) {
+AstSetting* createAstSetting(const char* name, int name_len, Ast* value, int offset) {
     AstSetting* ret = (AstSetting*)malloc(sizeof(AstSetting));
     ret->type = AST_SETTING;
     ret->name = name;
     ret->name_len = name_len;
     ret->value = value;
+    ret->offset = offset;
     return ret;
 }

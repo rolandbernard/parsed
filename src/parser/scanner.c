@@ -68,12 +68,38 @@ static int determenNextToken(const char* src, TokenType* out) {
     } else if(src[0] == ':' && src[1] == '=') {
         len = 2;
         *out = TOKEN_DEFINE;
-    } 
+    } else if(src[0] == ';') {
+        *out = TOKEN_SEMICOLON;
+    }
     return len;
+}
+
+static int skipWhitespace(Scanner* scanner) {
+    int length = 0;
+    while(scanner->offset < scanner->length && isspace(scanner->src[scanner->offset])) {
+        scanner->offset++;
+        length++;
+    }
+    return length;
+}
+
+static int skipComments(Scanner* scanner) {
+    int length = 0;
+    if(scanner->offset < scanner->length && scanner->src[scanner->offset] == '#') {
+        length = 1;
+        while(scanner->offset < scanner->length && scanner->src[scanner->offset] != '\n') {
+            scanner->offset++;
+            length++;
+        }
+        scanner->offset++;
+        length++;
+    }
+    return length;
 }
 
 Token getNextToken(Scanner* scanner) {
     if(!scanner->is_cached) {
+        while(skipWhitespace(scanner) + skipComments(scanner) > 0) { }
         if(scanner->offset >= scanner->length) {
             scanner->cached.start = scanner->src + scanner->length;
             scanner->cached.len = 0;
