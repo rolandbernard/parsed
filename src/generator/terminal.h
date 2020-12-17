@@ -7,6 +7,7 @@ typedef struct {
     bool is_regex;
     const char* pattern;
     int pattern_len;
+    int offset;
     int id;
 } Terminal;
 

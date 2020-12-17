@@ -25,7 +25,7 @@ static unsigned long hashString(const char* str, int len, bool change_primes) {
     return hash;
 }
 
-static void insertIntoData(Terminal* data, int capacity, const char* pattern, int pattern_len, int id, bool is_regex) {
+static void insertIntoData(Terminal* data, int capacity, const char* pattern, int pattern_len, int id, bool is_regex, int offset) {
     int index = hashString(pattern, pattern_len, is_regex) % capacity;
     while(data[index].pattern != NULL && data[index].pattern != DELETED) {
         index = (index + 1) % capacity;
@@ -34,6 +34,7 @@ static void insertIntoData(Terminal* data, int capacity, const char* pattern, in
     data[index].pattern_len = pattern_len;
     data[index].is_regex = is_regex;
     data[index].id = id;
+    data[index].offset = offset;
 }
 
 static int findEntry(const Terminal* data, int capacity, const char* pattern, int pattern_len, bool is_regex) {
@@ -57,7 +58,7 @@ static int findEntry(const Terminal* data, int capacity, const char* pattern, in
 static void rehashHashTable(const Terminal* old_data, int old_capacity, Terminal* new_data, int new_capacity) {
     for(int i = 0; i < old_capacity; i++) {
         if(old_data[i].pattern != NULL && old_data[i].pattern != DELETED) {
-            insertIntoData(new_data, new_capacity, old_data[i].pattern, old_data[i].pattern_len, old_data[i].id, old_data[i].is_regex);
+            insertIntoData(new_data, new_capacity, old_data[i].pattern, old_data[i].pattern_len, old_data[i].id, old_data[i].is_regex, old_data[i].offset);
         }
     }
 }
@@ -93,7 +94,7 @@ int addToTerminalTable(TerminalTable* table, Terminal terminal) {
     checkForSizeGrowth(table);
     int index = findEntry(table->data, table->capacity, terminal.pattern, terminal.pattern_len, terminal.is_regex);
     if (index == -1) {
-        insertIntoData(table->data, table->capacity, terminal.pattern, terminal.pattern_len, table->count, terminal.is_regex);
+        insertIntoData(table->data, table->capacity, terminal.pattern, terminal.pattern_len, table->count, terminal.is_regex, terminal.offset);
         table->count++;
         return table->count;
     } else {
