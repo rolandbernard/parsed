@@ -4,6 +4,6 @@
 #include "ast.h"
 #include "errors.h"
 
-Ast* parseGrammar(const char* src, ErrorContext* error_context);
+Ast* parseGrammar(const char* src, int len, ErrorContext* error_context);
 
 #endif

@@ -159,9 +159,9 @@ AstRoot* parseRoot(Scanner* scanner, ErrorContext* error_context) {
     return ret;
 }
 
-Ast* parseGrammar(const char* src, ErrorContext* error_context) {
+Ast* parseGrammar(const char* src, int len, ErrorContext* error_context) {
     Scanner scanner;
-    initScanner(&scanner, src);
+    initScanner(&scanner, src, len);
     AstRoot* ret = parseRoot(&scanner, error_context);
     if(ret == PARSER_ERROR) {
         freeScanner(&scanner);
@@ -181,7 +181,6 @@ Ast* parseGrammar(const char* src, ErrorContext* error_context) {
         }
         freeAst((Ast*)ret);
         freeScanner(&scanner);
-        freeAst((Ast*)ret);
         return NULL;
     } else {
         freeScanner(&scanner);
