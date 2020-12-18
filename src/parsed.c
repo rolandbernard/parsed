@@ -45,7 +45,7 @@ int main(int argc, const char* const* argv) {
                 if(output == NULL) {
                     addErrorf(&errors, -1, ERROR, "Failed to open the file %s", argv[2]);
                 } else {
-                    generateParser(output, ast, &errors);
+                    generateLexerAndParser(output, ast, &errors);
                     fclose(output);
                 }
                 freeAst(ast);

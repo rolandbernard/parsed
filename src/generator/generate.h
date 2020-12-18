@@ -6,6 +6,6 @@
 #include "parser/ast.h"
 #include "errors.h"
 
-void generateParser(FILE* output, Ast* ast, ErrorContext* error_context);
+void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context);
 
 #endif

@@ -1,7 +1,8 @@
 
 #include "nonterminal.h"
 #include "terminal.h"
-#include "regex.h"
+#include "lexer.h"
+#include "parser.h"
 
 #include "generate.h"
 
@@ -66,44 +67,20 @@ void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable* nonte
     }
 }
 
-void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) {
-    array[nonterminal.id] = nonterminal;
-}
-
-void generateScanner(FILE* output, TerminalTable* terminals, ErrorContext* error_context) {
-    Terminal sorted[terminals->count];
-    forEachInTerminalTable(terminals, (TerminalTableIterationFunction)addToSortedTerminalArray, (void*)sorted);
-    bool is_regexs[terminals->count];
-    const char* patterns[terminals->count];
-    int lengths[terminals->count];
-    for(int i = 0; i < terminals->count; i++) {
-        is_regexs[i] = sorted[i].is_regex;
-        patterns[i] = sorted[i].pattern;
-        lengths[i] = sorted[i].pattern_len;
-    }
-    Regex dfa = compileMultiMatchingStringsAndRegexN(terminals->count, is_regexs, patterns, lengths);
-    if(dfa != NULL) {
-        printRegexDfa(dfa);
-        disposeRegex(dfa);
-    } else {
-        for(int i = 0; i < terminals->count; i++) {
-            int error = getRegexErrorLocationN(patterns[i], lengths[i]);
-            if(is_regexs[i] && error != -1) {
-                fprintf(stderr, "%i\n", lengths[i]);
-                addError(error_context, "Illegal regex pattern", sorted[i].offset + 1 + error, ERROR);
-            }
-        }
-    }
-}
-
-void generateParser(FILE* output, Ast* ast, ErrorContext* error_context) {
+void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context) {
     NonTerminalTable nonterminals;
     initNonTerminalTable(&nonterminals);
     TerminalTable terminals;
     initTerminalTable(&terminals);
     searchForTokens(ast, &terminals, &nonterminals);
-    generateScanner(output, &terminals, error_context);
-
+    GeneratorSettings settings;
+    fillSettingsFromAst(&settings, ast, error_context);
+    if(getErrorCount(error_context) == 0) {
+        generateLexer(output, &terminals, &settings, error_context);
+        if(getErrorCount(error_context) == 0) {
+            generateParser(output, ast, &settings, error_context);
+        }
+    }
     freeTerminalTable(&terminals);
     freeNonTerminalTable(&nonterminals);
 }
