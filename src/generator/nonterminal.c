@@ -25,14 +25,12 @@ static unsigned long hashString(const char* str, int len) {
     return hash;
 }
 
-static void insertIntoData(NonTerminal* data, int capacity, const char* name, int name_len, int id) {
-    int index = hashString(name, name_len) % capacity;
+static void insertIntoData(NonTerminal* data, int capacity, NonTerminal nonterm) {
+    int index = hashString(nonterm.name, nonterm.name_len) % capacity;
     while(data[index].name != NULL && data[index].name != DELETED) {
         index = (index + 1) % capacity;
     }
-    data[index].name = name;
-    data[index].name_len = name_len;
-    data[index].id = id;
+    data[index] = nonterm;
 }
 
 static int findEntry(const NonTerminal* data, int capacity, const char* name, int name_len) {
@@ -55,7 +53,7 @@ static int findEntry(const NonTerminal* data, int capacity, const char* name, in
 static void rehashHashTable(const NonTerminal* old_data, int old_capacity, NonTerminal* new_data, int new_capacity) {
     for(int i = 0; i < old_capacity; i++) {
         if(old_data[i].name != NULL && old_data[i].name != DELETED) {
-            insertIntoData(new_data, new_capacity, old_data[i].name, old_data[i].name_len, old_data[i].id);
+            insertIntoData(new_data, new_capacity, old_data[i]);
         }
     }
 }
@@ -91,7 +89,8 @@ int addToNonTerminalTable(NonTerminalTable* table, NonTerminal non_terminal) {
     checkForSizeGrowth(table);
     int index = findEntry(table->data, table->capacity, non_terminal.name, non_terminal.name_len);
     if (index == -1) {
-        insertIntoData(table->data, table->capacity, non_terminal.name, non_terminal.name_len, table->count);
+        non_terminal.id = table->count;
+        insertIntoData(table->data, table->capacity, non_terminal);
         table->count++;
         return table->count;
     } else {
