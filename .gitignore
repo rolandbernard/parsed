@@ -6,3 +6,6 @@ callgrind.*
 perf.*
 gmon.*
 ignore.*
+
+example.grammar
+example.c
