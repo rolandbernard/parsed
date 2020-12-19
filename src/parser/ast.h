@@ -101,4 +101,6 @@ void addChildToAstSequence(AstSequence* seq, Ast* child);
 
 AstSetting* createAstSetting(const char* name, int name_len, Ast* value, int offset);
 
+void addToDynamicAstArray(Ast*** data, int* count, int* capacity, Ast* value);
+
 #endif

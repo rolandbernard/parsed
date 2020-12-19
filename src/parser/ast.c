@@ -56,7 +56,7 @@ AstRoot* createAstRoot() {
     return ret;
 }
 
-static inline void addToDynamicAstArray(Ast*** data, int* count, int* capacity, Ast* value) {
+void addToDynamicAstArray(Ast*** data, int* count, int* capacity, Ast* value) {
     if(*count == *capacity) {
         if(*capacity == 0) {
             *capacity = 4;
