@@ -3,6 +3,15 @@
 
 #include "lexer.h"
 
+static void generateTokenTypeDefinition(FILE* output) {
+    fputs("\ntypedef struct {\n", output);
+    fputs("    int kind;\n", output);
+    fputs("    int offset;\n", output);
+    fputs("    int len;\n", output);
+    fputs("    const char* start;\n", output);
+    fputs("} ParsedToken;\n", output);
+}
+
 static void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) {
     array[nonterminal.id] = nonterminal;
 }
@@ -20,6 +29,7 @@ void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* se
     }
     Regex dfa = compileMultiMatchingStringsAndRegexN(terminals->count, is_regexs, patterns, lengths);
     if(dfa != NULL) {
+        generateTokenTypeDefinition(output);
         printRegexDfa(dfa);
         disposeRegex(dfa);
     } else {
