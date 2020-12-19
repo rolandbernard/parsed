@@ -6,7 +6,7 @@
 
 #include "generate.h"
 
-void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable* nonterminals) {
+static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable* nonterminals) {
     switch (ast->type) {
     case AST_ROOT: {
         AstRoot* root = (AstRoot*)ast;
@@ -79,7 +79,7 @@ void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context)
     if(getErrorCount(error_context) == 0) {
         generateLexer(output, &terminals, &settings, error_context);
         if(getErrorCount(error_context) == 0) {
-            generateParserFunctionDeclatations(output, &nonterminals);
+            generateParserFunctionDeclatations(output, &nonterminals, &settings);
             generateParser(output, ast, &settings, error_context);
         }
     }

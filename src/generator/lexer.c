@@ -3,7 +3,7 @@
 
 #include "lexer.h"
 
-void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) {
+static void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) {
     array[nonterminal.id] = nonterminal;
 }
 
