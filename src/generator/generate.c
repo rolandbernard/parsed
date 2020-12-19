@@ -74,13 +74,16 @@ void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context)
     initTerminalTable(&terminals);
     searchForTokens(ast, &terminals, &nonterminals);
     GeneratorSettings settings;
+    initSettings(&settings);
     fillSettingsFromAst(&settings, ast, error_context);
     if(getErrorCount(error_context) == 0) {
         generateLexer(output, &terminals, &settings, error_context);
         if(getErrorCount(error_context) == 0) {
+            generateParserFunctionDeclatations(output, &nonterminals);
             generateParser(output, ast, &settings, error_context);
         }
     }
+    freeSettings(&settings);
     freeTerminalTable(&terminals);
     freeNonTerminalTable(&nonterminals);
 }
