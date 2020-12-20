@@ -70,19 +70,19 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
 void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context) {
     NonTerminalTable nonterminals;
     initNonTerminalTable(&nonterminals);
+
     TerminalTable terminals;
     initTerminalTable(&terminals);
     searchForTokens(ast, &terminals, &nonterminals);
+
     GeneratorSettings settings;
     initSettings(&settings);
     fillSettingsFromAst(&settings, ast, error_context);
-    if(getErrorCount(error_context) == 0) {
-        generateLexer(output, &terminals, &settings, error_context);
-        if(getErrorCount(error_context) == 0) {
-            generateParserFunctionDeclatations(output, &nonterminals, &settings);
-            generateParser(output, ast, &settings, error_context);
-        }
-    }
+    
+    generateLexer(output, &terminals, &settings, error_context);
+    generateParserFunctionDeclatations(output, &nonterminals, &settings);
+    generateParser(output, ast, &settings, error_context);
+
     freeSettings(&settings);
     freeTerminalTable(&terminals);
     freeNonTerminalTable(&nonterminals);
