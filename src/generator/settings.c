@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "settings.h"
 
@@ -53,4 +54,46 @@ void fillSettingsFromAst(GeneratorSettings* settings, Ast* ast, ErrorContext* er
             }
         }
     }
+}
+
+void printArgNames(FILE* output, AstInlineC* args) {
+    for (int i = 0; i < args->len; i++) {
+        if (args->src[i] == ',') {
+            int end = i;
+            int paren = 0;
+            while (end > 0 && (paren != 0 || !isalnum(args->src[end]))) {
+                if (args->src[end] == ']') {
+                    paren++;
+                } else if (args->src[end] == '[') {
+                    paren--;
+                }
+                end--;
+            }
+            end++;
+            int start = end - 1;
+            while (start > 0 && isalnum(args->src[start])) {
+                start--;
+            }
+            start++;
+            fwrite(args->src + start, 1, end - start, output);
+            fputs(", ", output);
+        }
+    }
+    int end = args->len;
+    int paren = 0;
+    while (end > 0 && (paren != 0 || !isalnum(args->src[end]))) {
+        if (args->src[end] == ']') {
+            paren++;
+        } else if (args->src[end] == '[') {
+            paren--;
+        }
+        end--;
+    }
+    end++;
+    int start = end - 1;
+    while (start > 0 && isalnum(args->src[start])) {
+        start--;
+    }
+    start++;
+    fwrite(args->src + start, 1, end - start, output);
 }

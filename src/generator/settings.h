@@ -19,4 +19,6 @@ void freeSettings(GeneratorSettings* settings);
 
 void fillSettingsFromAst(GeneratorSettings* settings, Ast* ast, ErrorContext* error_context);
 
+void printArgNames(FILE* output, AstInlineC* args);
+
 #endif
