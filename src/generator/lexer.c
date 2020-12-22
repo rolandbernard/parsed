@@ -60,21 +60,22 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
             fwrite(code->src + last_written, 1, code->len - last_written, output);
             fputs("\n\t}\n", output);
             fputs("\tif (parsed_length > 0) {\n", output);
-            fprintf(output, "\t\tparsed_out->kind = %i;\n", terminals->count + i);
+            fputs("\t\tparsed_out->kind = -1;\n", output);
             fputs("\t\tparsed_out->offset = parsed_offset;\n", output);
             fputs("\t\tparsed_out->len = parsed_length;\n", output);
             fputs("\t\tparsed_out->start = parsed_start;\n", output);
-            fputs("\t\treturn 0;\n", output);
+            fputs("\t\treturn 1;\n", output);
             fputs("\t}\n", output);
         }
     }
     fputs("\tint parsed_state = 0;\n", output);
-    fputs("\tint parsed_kind = 0;\n", output);
-    fputs("\tfor (int parsed_i = 0; parsed_i < parsed_max_len; parsed_i++) {\n", output);
+    fputs("\tint parsed_kind = -1;\n", output);
+    fputs("\tint parsed_len = 0;\n", output);
+    fputs("\tfor (parsed_len = 0; parsed_len < parsed_max_len; parsed_len++) {\n", output);
     fputs("\t\tswitch (parsed_state) {\n", output);
     for(int i = 0; i < dfa->num_states; i++) {
         fprintf(output, "\t\tcase %i:\n", i);
-        fputs("\t\t\tswitch (parsed_start[parsed_i]) {\n", output);
+        fputs("\t\t\tswitch (parsed_start[parsed_len]) {\n", output);
         for(int c = 0; c < REGEX_NUM_CHARS; c++) {
             if(dfa->states[i][c].state_type == REGEX_STATE_NEXT) {
                 if(isprint(c) && c != '\'') {
@@ -83,14 +84,22 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
                     fprintf(output, "\t\t\tcase '\\x%.2x':\n", c);
                 }
                 if(
-                    c + 1 < REGEX_STATE_NEXT || dfa->states[i][c].state_type != dfa->states[i][c + 1].state_type
+                    c + 1 >= REGEX_NUM_CHARS || dfa->states[i][c].state_type != dfa->states[i][c + 1].state_type
                     || dfa->states[i][c].next_state != dfa->states[i][c + 1].next_state
                 ) {
+                    if(dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
+                        fputs("\t\t\t\tparsed_length = parsed_len;\n", output);
+                        if(to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
+                            fprintf(output, "\t\t\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
+                        }
+                    }
+                    fprintf(output, "\t\t\t\tparsed_state = %i;\n", dfa->states[i][c].next_state);
                     fputs("\t\t\t\tbreak;\n", output);
                 }
             }
         }
         fputs("\t\t\tdefault:\n", output);
+        fputs("\t\t\t\tgoto break_state_machine;\n", output);
         fputs("\t\t\t\tbreak;\n", output);
         fputs("\t\t\t}\n", output);
         fputs("\t\t\tbreak;\n", output);
@@ -98,6 +107,33 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
     fputs("\t\t}\n", output);
     fputs("\t}\n", output);
     fputs("break_state_machine:\n", output);
+    fputs("\tswitch (parsed_state) {\n", output);
+    for(int i = 0; i < dfa->num_states; i++) {
+        if(dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
+            fprintf(output, "\tcase %i:\n", i);
+            fputs("\t\tparsed_length = parsed_len;\n", output);
+            if(to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
+                fprintf(output, "\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
+            }
+            fputs("\t\tbreak;\n", output);
+        }
+    }
+    fputs("\tdefault:\n", output);
+    fputs("\t\tbreak;\n", output);
+    fputs("\t}\n", output);
+    fputs("\tif (parsed_length > 0) {\n", output);
+    fputs("\t\tparsed_out->kind = parsed_kind;\n", output);
+    fputs("\t\tparsed_out->offset = parsed_offset;\n", output);
+    fputs("\t\tparsed_out->len = parsed_length;\n", output);
+    fputs("\t\tparsed_out->start = parsed_start;\n", output);
+    fputs("\t\treturn parsed_kind >= 0 ? 0 : 1;\n", output);
+    fputs("\t} else {\n", output);
+    fputs("\t\tparsed_out->kind = -1;\n", output);
+    fputs("\t\tparsed_out->offset = parsed_offset;\n", output);
+    fputs("\t\tparsed_out->len = 1;\n", output);
+    fputs("\t\tparsed_out->start = parsed_start;\n", output);
+    fputs("\t\treturn -1;\n", output);
+    fputs("\t}\n", output);
     fputs("}\n", output);
 }
 
