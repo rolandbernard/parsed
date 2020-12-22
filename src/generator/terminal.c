@@ -93,7 +93,7 @@ int addToTerminalTable(TerminalTable* table, Terminal terminal) {
         terminal.id = table->count;
         insertIntoData(table->data, table->capacity, terminal);
         table->count++;
-        return table->count;
+        return terminal.id;
     } else {
         return table->data[index].id;
     }

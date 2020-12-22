@@ -92,7 +92,7 @@ int addToNonTerminalTable(NonTerminalTable* table, NonTerminal non_terminal) {
         non_terminal.id = table->count;
         insertIntoData(table->data, table->capacity, non_terminal);
         table->count++;
-        return table->count;
+        return non_terminal.id;
     } else {
         return table->data[index].id;
     }
