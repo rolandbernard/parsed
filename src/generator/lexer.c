@@ -6,7 +6,7 @@
 
 #include "lexer.h"
 
-static void generateInitialDefinitions(FILE* output) {
+void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings) {
     fputs("\n#include <stdlib.h>\n", output);
     fputs("\ntypedef struct {\n", output);
     fputs("\tint kind;\n", output);
@@ -15,6 +15,18 @@ static void generateInitialDefinitions(FILE* output) {
     fputs("\tconst char* start;\n", output);
     fputs("} ParsedToken;\n", output);
     fputs("\ntypedef ParsedToken* ParsedTokens;\n", output);
+    fputs("\nint parsedDetermineToken(const char* parsed_start, int parsed_offset, int parsed_max_len, ParsedToken* parsed_out", output);
+    if (settings->args != NULL) {
+        fputs(", ", output);
+        fwrite(settings->args->src, 1, settings->args->len, output);
+    }
+    fputs(");\n", output);
+    fputs("\nParsedToken* parsedTokenize(const char* parsed_string, int parsed_length", output);
+    if (settings->args != NULL) {
+        fputs(", ", output);
+        fwrite(settings->args->src, 1, settings->args->len, output);
+    }
+    fputs(");\n", output);
 }
 
 static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Regex dfa, GeneratorSettings* settings, ErrorContext* error_context) {
@@ -117,7 +129,7 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
         if (dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
             fprintf(output, "\tcase %i:\n", i);
             fputs("\t\tparsed_length = parsed_len;\n", output);
-            if (to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
+            if (!to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
                 fprintf(output, "\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
             }
             fputs("\t\tbreak;\n", output);
@@ -167,13 +179,14 @@ static void generateTokenizer(FILE* output, GeneratorSettings* settings) {
     fputs("\t\t\t\tparsed_tokens = (ParsedToken*)realloc(parsed_tokens, sizeof(ParsedToken) * parsed_capacity);\n", output);
     fputs("\t\t\t}\n", output);
     fputs("\t\t\tparsed_tokens[parsed_count] = parsed_token;\n", output);
-    fputs("\t\t\tparsed_offset += parsed_token.len;\n", output);
-    fputs("\t\t\tparsed_string += parsed_token.len;\n", output);
-    fputs("\t\t\tparsed_length -= parsed_token.len;\n", output);
+    fputs("\t\t\tparsed_count++;\n", output);
     fputs("\t\t\tif (parsed_token.kind == -1) {\n", output);
     fputs("\t\t\t\tbreak;\n", output);
     fputs("\t\t\t}\n", output);
     fputs("\t\t}\n", output);
+    fputs("\t\tparsed_offset += parsed_token.len;\n", output);
+    fputs("\t\tparsed_string += parsed_token.len;\n", output);
+    fputs("\t\tparsed_length -= parsed_token.len;\n", output);
     fputs("\t}\n", output);
     fputs("\tparsed_tokens = (ParsedToken*)realloc(parsed_tokens, sizeof(ParsedToken) * parsed_count);\n", output);
     fputs("\treturn parsed_tokens;\n", output);
@@ -195,7 +208,6 @@ void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* se
     }
     Regex dfa = compileMultiMatchingStringsAndRegexN(terminals->count, is_regexs, patterns, lengths);
     if (dfa != NULL) {
-        generateInitialDefinitions(output);
         generateTokenDeterminer(output, terminals, dfa, settings, error_context);
         generateTokenizer(output, settings);
         disposeRegex(dfa);

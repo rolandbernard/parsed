@@ -7,6 +7,8 @@
 #include "errors.h"
 #include "settings.h"
 
+void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings);
+
 void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* settings, ErrorContext* error_context);
 
 #endif
