@@ -31,7 +31,7 @@ char* loadFileContent(const char* filename, ErrorContext* error_context, int* si
 
 int main(int argc, const char* const* argv) {
     if(argc != 3) {
-        fprintf(stderr, "Usage: %s [INPUT] [OUTPUT]\n", argv[0]);
+        fprintf(stderr, "Usage: %s INPUT OUTPUT\n", argv[0]);
         return EXIT_FAILURE;
     } else {
         ErrorContext errors;

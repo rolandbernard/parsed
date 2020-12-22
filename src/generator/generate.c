@@ -69,15 +69,13 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
     }
 }
 
-static void writeInitialInlineC(FILE* output, Ast* ast) {
+static void writeInlineC(FILE* output, Ast* ast) {
     assert(ast->type == AST_ROOT);
     AstRoot* root = (AstRoot*)ast;
     for(int i = 0; i < root->child_count; i++) {
         if(root->children[i]->type == AST_INLINE_C) {
             AstInlineC* code = (AstInlineC*)root->children[i];
             fwrite(code->src, 1, code->len, output);
-        } else if(root->children[i]->type == AST_DEFINITION) {
-            break;
         }
     }
 }
@@ -94,9 +92,10 @@ void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context)
     initSettings(&settings);
     fillSettingsFromAst(&settings, ast, error_context);
     
-    writeInitialInlineC(output, ast);
-    generateLexer(output, &terminals, &settings, error_context);
+    generateLexerFunctionDeclatations(output, &settings);
     generateParserFunctionDeclatations(output, &nonterminals, &settings);
+    writeInlineC(output, ast);
+    generateLexer(output, &terminals, &settings, error_context);
     generateParser(output, ast, &settings, error_context);
 
     freeSettings(&settings);
