@@ -1,0 +1,76 @@
+
+%{
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+}
+
+%{
+int parseNestedBlockComments(const char* data, int length) {
+    if(data[0] == '/' && data[1] == '*') {
+        int len = 2;
+        int depth = 0;
+        while (len < length) {
+            if(data[len] == '*' && data[len + 1] == '/') {
+                if(depth == 0) {
+                    len += 2;
+                    break;
+                } else {
+                    len += 2;
+                    depth--;
+                }
+            } else if(data[len] == '/' && data[len + 1] == '*') {
+                len += 2;
+                depth++;
+            } else {
+                len++;
+            }
+        }
+        return len;
+    } else {
+        return 0;
+    }
+}
+}
+
+%return { double }
+%ignore /\s/
+%ignore { $length = parseNestedBlockComments($source, $maxlength); }
+
+number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ { $return = strtod(parsedTokenToString($term[0]), NULL); };
+
+expr_base := number;
+
+expr_pow := expr_base '^' expr_pow { $return = pow($nonterm[0], $nonterm[1]); }
+          | expr_base;
+
+expr_mul := expr_mul '*' expr_pow { $return = $nonterm[0] * $nonterm[1]; }
+          | expr_mul '/' expr_pow { $return = $nonterm[0] / $nonterm[1]; }
+          | expr_pow;
+
+expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
+          | expr_add '-' expr_mul { $return = $nonterm[0] - $nonterm[1]; }
+          | expr_mul;
+
+expr := expr_mul;
+
+%{
+
+int main(int argc, char** argv) {
+    if(argc > 1) {
+        ParsedTokens tokens = parsedTokenize(argv[1], strlen(argv[1]));
+        double ret = 0;
+        if(!parsedReachedEnd(parsed_expr(tokens, &ret))) {
+            fprintf(stderr, "Failed to parse.\n");
+        } else {
+            fprintf(stdout, "%lg\n", ret);
+        }
+        freeParsedTokens(tokens);
+    } else {
+        fprintf(stderr, "Usage: %s EXPRESSION\n", argv[0]);
+    }
+    return 0;
+}
+
+}
+
