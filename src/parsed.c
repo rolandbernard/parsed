@@ -51,7 +51,7 @@ int main(int argc, const char* const* argv) {
                 freeAst(ast);
             }
         }
-        printErrors(stderr, &errors, data, argv[0]);
+        printErrors(stderr, &errors, data, argv[1]);
         if(data != NULL) {
             free(data);
         }
