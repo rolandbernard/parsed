@@ -101,45 +101,58 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
     tabs[depth] = 0;
     int last_written = start;
     bool have_returns = false;
+    fprintf(output, "%s\tswitch (parsed_current->kind) {\n", tabs);
     for (int i = start; i < end; i++) {
         if (sequences[i]->child_count > depth) {
-            if(
-                i + 1 >= end || sequences[i + 1]->child_count <= depth
-                || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
-                || (sequences[i]->children[depth]->type == AST_IDENTIFIER && ((AstIdentifier*)sequences[i]->children[depth])->id != ((AstIdentifier*)sequences[i + 1]->children[depth])->id)
-                || (sequences[i]->children[depth]->type == AST_TOKEN && ((AstToken*)sequences[i]->children[depth])->id != ((AstToken*)sequences[i + 1]->children[depth])->id)
-            ) {
-                if (sequences[i]->children[depth]->type == AST_IDENTIFIER) {
-                    AstIdentifier* ident = (AstIdentifier*)sequences[i]->children[depth];
-                    fprintf(output, "%s\tif ((parsed_next = parsed_", tabs);
-                    fwrite(ident->ident, 1, ident->ident_len, output);
-                    fputs("(parsed_current, &parsed_nonterm[parsed_numnonterm]", output);
-                    if (settings->args != NULL) {
-                        fputs(", ", output);
-                        printArgNames(output, settings->args);
-                    }
-                    fputs(")) != parsed_current) {\n", output);
-                    fprintf(output, "%s\t\tparsed_numnonterm++;\n", tabs);
-                    fprintf(output, "%s\t\tParsedToken* parsed_temp = parsed_current;\n", tabs);
-                    fprintf(output, "%s\t\tparsed_current = parsed_next;\n", tabs);
-                    recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
-                    fprintf(output, "%s\t\tparsed_current = parsed_temp;\n", tabs);
-                    fprintf(output, "%s\t\tparsed_numnonterm--;\n", tabs);
-                    fprintf(output, "%s\t}\n", tabs);
-                } else {
+            if(sequences[i]->children[depth]->type == AST_TOKEN) {
+                if(
+                    i + 1 >= end || sequences[i + 1]->child_count <= depth
+                    || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
+                    || ((AstToken*)sequences[i]->children[depth])->id != ((AstToken*)sequences[i + 1]->children[depth])->id
+                ) {
                     AstToken* tkn = (AstToken*)sequences[i]->children[depth];
-                    fprintf(output, "%s\tif (parsed_current->kind == %i) {\n", tabs, tkn->id);
+                    fprintf(output, "%s\tcase %i:\n", tabs, tkn->id);
                     fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
                     fprintf(output, "%s\t\tparsed_current++;\n", tabs);
                     recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
                     fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
                     fprintf(output, "%s\t\tparsed_current--;\n", tabs);
-                    fprintf(output, "%s\t}\n", tabs);
+                    fprintf(output, "%s\t\tbreak;\n", tabs);
+                    last_written = i + 1;
                 }
-                last_written = i + 1;
             }
         } else if (sequences[i]->child_count == depth) {
             have_returns = true;
+        }
+    }
+    fprintf(output, "%s\tdefault:\n", tabs);
+    fprintf(output, "%s\t\tbreak;\n", tabs);
+    fprintf(output, "%s\t}\n", tabs);
+    for (int i = start; i < end; i++) {
+        if (sequences[i]->child_count > depth && sequences[i]->children[depth]->type == AST_IDENTIFIER) {
+            if(
+                i + 1 >= end || sequences[i + 1]->child_count <= depth
+                || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
+                || ((AstIdentifier*)sequences[i]->children[depth])->id != ((AstIdentifier*)sequences[i + 1]->children[depth])->id
+            ) {
+                AstIdentifier* ident = (AstIdentifier*)sequences[i]->children[depth];
+                fprintf(output, "%s\tif ((parsed_next = parsed_", tabs);
+                fwrite(ident->ident, 1, ident->ident_len, output);
+                fputs("(parsed_current, &parsed_nonterm[parsed_numnonterm]", output);
+                if (settings->args != NULL) {
+                    fputs(", ", output);
+                    printArgNames(output, settings->args);
+                }
+                fputs(")) != parsed_current) {\n", output);
+                fprintf(output, "%s\t\tparsed_numnonterm++;\n", tabs);
+                fprintf(output, "%s\t\tParsedToken* parsed_temp = parsed_current;\n", tabs);
+                fprintf(output, "%s\t\tparsed_current = parsed_next;\n", tabs);
+                recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                fprintf(output, "%s\t\tparsed_current = parsed_temp;\n", tabs);
+                fprintf(output, "%s\t\tparsed_numnonterm--;\n", tabs);
+                fprintf(output, "%s\t}\n", tabs);
+                last_written = i + 1;
+            }
         }
     }
     if (have_returns) {
