@@ -57,6 +57,7 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
                 ret->code = code;
             }
         }
+        ret->offset = ret->children[0]->offset;
         return ret;
     }
 }

@@ -1,4 +1,5 @@
 
+#include <ctype.h>
 #include <assert.h>
 #include <string.h>
 
@@ -37,15 +38,23 @@ void generateParserFunctionDeclatations(FILE* output, NonTerminalTable* nontermi
 static int compareSequences(AstSequence* s1, AstSequence* s2) {
     for (int i = 0; i < s1->child_count && i < s2->child_count; i++) {
         if(s1->children[i]->type != s2->children[i]->type) {
-            return s1->children[i]->type - s2->children[i]->type;
+            if (s1->children[i]->type == AST_TOKEN) {
+                return -1;
+            } else {
+                return 1;
+            }
         } else if(s1->children[i]->type == AST_TOKEN) {
             AstToken* tk1 = (AstToken*)s1->children[i];
             AstToken* tk2 = (AstToken*)s2->children[i];
-            return tk1->id - tk2->id;
+            if (tk1->id != tk2->id) {
+                return tk1->id - tk2->id;
+            }
         } else if(s1->children[i]->type == AST_IDENTIFIER) {
             AstIdentifier* iden1 = (AstIdentifier*)s1->children[i];
             AstIdentifier* iden2 = (AstIdentifier*)s2->children[i];
-            return iden1->id - iden2->id;
+            if (iden1->id != iden2->id) {
+                return iden1->id - iden2->id;
+            }
         }
     }
     return s1->child_count - s2->child_count;
@@ -84,8 +93,130 @@ static void generateLeftRecursiveParser(FILE* output, AstOption* option, Generat
     
 }
 
+static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, int start, int end, int depth, GeneratorSettings* settings, ErrorContext* error_context) {
+    char tabs[depth + 1];
+    for(int i = 0; i < depth; i++) {
+        tabs[i] = '\t';
+    }
+    tabs[depth] = 0;
+    int last_written = start;
+    bool have_returns = false;
+    for (int i = start; i < end; i++) {
+        if (sequences[i]->child_count > depth) {
+            if(
+                i + 1 >= end || sequences[i + 1]->child_count <= depth
+                || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
+                || (sequences[i]->children[depth]->type == AST_IDENTIFIER && ((AstIdentifier*)sequences[i]->children[depth])->id != ((AstIdentifier*)sequences[i + 1]->children[depth])->id)
+                || (sequences[i]->children[depth]->type == AST_TOKEN && ((AstToken*)sequences[i]->children[depth])->id != ((AstToken*)sequences[i + 1]->children[depth])->id)
+            ) {
+                if (sequences[i]->children[depth]->type == AST_IDENTIFIER) {
+                    AstIdentifier* ident = (AstIdentifier*)sequences[i]->children[depth];
+                    fprintf(output, "%s\tif ((parsed_next = parsed_", tabs);
+                    fwrite(ident->ident, 1, ident->ident_len, output);
+                    fputs("(parsed_current, &parsed_nonterm[parsed_numnonterm]", output);
+                    if (settings->args != NULL) {
+                        fputs(", ", output);
+                        printArgNames(output, settings->args);
+                    }
+                    fputs(")) != parsed_current) {\n", output);
+                    fprintf(output, "%s\t\tparsed_numnonterm++;\n", tabs);
+                    fprintf(output, "%s\t\tParsedToken* parsed_temp = parsed_current;\n", tabs);
+                    fprintf(output, "%s\t\tparsed_current = parsed_next;\n", tabs);
+                    recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                    fprintf(output, "%s\t\tparsed_current = parsed_temp;\n", tabs);
+                    fprintf(output, "%s\t\tparsed_numnonterm--;\n", tabs);
+                    fprintf(output, "%s\t}\n", tabs);
+                } else {
+                    AstToken* tkn = (AstToken*)sequences[i]->children[depth];
+                    fprintf(output, "%s\tif (parsed_current->kind == %i) {\n", tabs, tkn->id);
+                    fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
+                    fprintf(output, "%s\t\tparsed_current++;\n", tabs);
+                    recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                    fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
+                    fprintf(output, "%s\t\tparsed_current--;\n", tabs);
+                    fprintf(output, "%s\t}\n", tabs);
+                }
+                last_written = i + 1;
+            }
+        } else if (sequences[i]->child_count == depth) {
+            have_returns = true;
+        }
+    }
+    if (have_returns) {
+        fprintf(output, "%s\t*parsed_return = parsed_nonterm[0];\n", tabs);
+        for (int i = start; i < end; i++) {
+            if (sequences[i]->child_count == depth) {
+                if (sequences[i]->code != NULL) {
+                    AstInlineC* code = sequences[i]->code;
+                    fprintf(output, "%s\t{\n", tabs);
+                    int last_written = 0;
+                    for (int j = 0; j < code->len; j++) {
+                        if (code->src[j] == '$') {
+                            fwrite(code->src + last_written, 1, j - last_written, output);
+                            int len = 1;
+                            while (isalnum(code->src[j + len]) || code->src[j + len] == '_') {
+                                len++;
+                            }
+                            if (strncmp("$numterm", code->src + j, len) == 0) {
+                                fputs(" parsed_numterm ", output);
+                            } else if (strncmp("$numnonterm", code->src + j, len) == 0) {
+                                fputs(" parsed_numnonterm ", output);
+                            } else if (strncmp("$term", code->src + j, len) == 0) {
+                                fputs(" parsed_term ", output);
+                            } else if (strncmp("$nonterm", code->src + j, len) == 0) {
+                                fputs(" parsed_nonterm ", output);
+                            } else if (strncmp("$return", code->src + j, len) == 0) {
+                                fputs(" (*parsed_return) ", output);
+                            } else {
+                                addError(error_context, "Unknown parser variable", code->offset + 1 + j, ERROR);
+                                fwrite(code->src + j, 1, len, output);
+                            }
+                            j += len - 1;
+                            last_written = j + 1;
+                        }
+                    }
+                    fwrite(code->src + last_written, 1, code->len - last_written, output);
+                    fprintf(output, "\n%s\t}\n", tabs);
+                }
+            }
+        }
+        fprintf(output, "%s\treturn parsed_current;\n", tabs);
+    }
+}
+
 static void generateNonRecursiveParser(FILE* output, AstOption* option, GeneratorSettings* settings, ErrorContext* error_context) {
     quickSortOptionSequences(option->options, 0, option->option_count);
+    int max_nonterms = 1;
+    int max_terms = 1;
+    for (int i = 0; i < option->option_count; i++) {
+        if (i != 0 && compareSequences(option->options[i - 1], option->options[i]) == 0) {
+            addError(error_context, "Duplicate expantion options", option->options[i]->offset, WARNING);
+        }
+        int num_nonterms = 0;
+        int num_terms = 0;
+        for (int j = 0; j < option->options[i]->child_count; j++) {
+            if (option->options[i]->children[j]->type == AST_TOKEN) {
+                num_terms++;
+            } else {
+                num_nonterms++;
+            }
+        }
+        if (num_terms > max_terms) {
+            max_terms = num_terms;
+        }
+        if (num_nonterms > max_nonterms) {
+            max_nonterms = num_nonterms;
+        }
+    }
+    fputs("\t", output);
+    fwrite(settings->return_type->src, 1, settings->return_type->len, output);
+    fprintf(output, " parsed_nonterm[%i];\n", max_terms);
+    fprintf(output, "\tParsedToken parsed_term[%i];\n", max_nonterms);
+    fputs("\tint parsed_numnonterm = 0;\n", output);
+    fputs("\tint parsed_numterm = 0;\n", output);
+    fputs("\tParsedToken* parsed_current = parsed_tokens;\n", output);
+    fputs("\tParsedToken* parsed_next = parsed_tokens;\n", output);
+    recursiveNonRecursiveParser(output, option->options, 0, option->option_count, 0, settings, error_context);
 }
 
 void generateParser(FILE* output, Ast* ast, GeneratorSettings* settings, ErrorContext* error_context) {
