@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 }
 
 %{
@@ -37,7 +38,11 @@ int parseNestedBlockComments(const char* data, int length) {
 %ignore /\s/
 %ignore { $length = parseNestedBlockComments($source, $maxlength); }
 
-number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ { $return = strtod(parsedTokenToString($term[0]), NULL); };
+number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ {
+    const char* string = parsedTokenToString($term[0]);
+    $return = strtod(string, NULL);
+    free(string);
+};
 
 expr_base := number;
 
@@ -55,7 +60,6 @@ expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
 expr := expr_mul;
 
 %{
-
 int main(int argc, char** argv) {
     if(argc > 1) {
         ParsedTokens tokens = parsedTokenize(argv[1], strlen(argv[1]));
@@ -71,6 +75,5 @@ int main(int argc, char** argv) {
     }
     return 0;
 }
-
 }
 

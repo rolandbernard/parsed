@@ -27,6 +27,8 @@ void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings
         fwrite(settings->args->src, 1, settings->args->len, output);
     }
     fputs(");\n", output);
+    fputs("\nchar* parsedTokenToString(ParsedToken token);\n", output);
+    fputs("\nint parsedReachedEnd(ParsedToken* tokens);\n", output);
 }
 
 static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Regex dfa, GeneratorSettings* settings, ErrorContext* error_context) {
@@ -89,13 +91,19 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
         }
     }
     fputs("\tint parsed_state = 0;\n", output);
-    fputs("\tint parsed_kind = -1;\n", output);
+    fputs("\tint parsed_kind = -2;\n", output);
     fputs("\tint parsed_len = 0;\n", output);
-    fputs("\tfor (parsed_len = 0; parsed_len < parsed_max_len; parsed_len++) {\n", output);
+    fputs("\tfor (parsed_len = 0; parsed_len <= parsed_max_len; parsed_len++) {\n", output);
     fputs("\t\tswitch (parsed_state) {\n", output);
     for (int i = 0; i < dfa->num_states; i++) {
         fprintf(output, "\t\tcase %i:\n", i);
-        fputs("\t\t\tswitch (parsed_start[parsed_len]) {\n", output);
+        if (dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
+            fputs("\t\t\tparsed_length = parsed_len;\n", output);
+            if (!to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
+                fprintf(output, "\t\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
+            }
+        }
+        fputs("\t\t\tswitch (parsed_len < parsed_max_len ? parsed_start[parsed_len] : -1) {\n", output);
         for (int c = 0; c < REGEX_NUM_CHARS; c++) {
             if (dfa->states[i][c].state_type == REGEX_STATE_NEXT) {
                 if (isprint(c) && c != '\'') {
@@ -104,12 +112,6 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
                     fprintf(output, "\t\t\tcase '\\x%.2x':\n", c);
                 }
                 if (c + 1 >= REGEX_NUM_CHARS || dfa->states[i][c].state_type != dfa->states[i][c + 1].state_type || dfa->states[i][c].next_state != dfa->states[i][c + 1].next_state) {
-                    if (dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
-                        fputs("\t\t\t\tparsed_length = parsed_len;\n", output);
-                        if (to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
-                            fprintf(output, "\t\t\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
-                        }
-                    }
                     fprintf(output, "\t\t\t\tparsed_state = %i;\n", dfa->states[i][c].next_state);
                     fputs("\t\t\t\tbreak;\n", output);
                 }
@@ -124,20 +126,6 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
     fputs("\t\t}\n", output);
     fputs("\t}\n", output);
     fputs("break_state_machine:\n", output);
-    fputs("\tswitch (parsed_state) {\n", output);
-    for (int i = 0; i < dfa->num_states; i++) {
-        if (dfa->states[i][REGEX_NUM_CHARS].state_type == REGEX_STATE_END) {
-            fprintf(output, "\tcase %i:\n", i);
-            fputs("\t\tparsed_length = parsed_len;\n", output);
-            if (!to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
-                fprintf(output, "\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
-            }
-            fputs("\t\tbreak;\n", output);
-        }
-    }
-    fputs("\tdefault:\n", output);
-    fputs("\t\tbreak;\n", output);
-    fputs("\t}\n", output);
     fputs("\tif (parsed_length > 0) {\n", output);
     fputs("\t\tparsed_out->kind = parsed_kind;\n", output);
     fputs("\t\tparsed_out->offset = parsed_offset;\n", output);
@@ -193,6 +181,17 @@ static void generateTokenizer(FILE* output, GeneratorSettings* settings) {
     fputs("}\n", output);
 }
 
+static void generateUtilFunctions(FILE* output, GeneratorSettings* settings) {
+    fputs("\nchar* parsedTokenToString(ParsedToken token) {\n", output);
+    fputs("\tchar* ret = malloc(sizeof(char) * token.len);\n", output);
+    fputs("\tmemcpy(ret, token.start, sizeof(char) * token.len);\n", output);
+    fputs("\treturn ret;\n", output);
+    fputs("}\n", output);
+    fputs("\nint parsedReachedEnd(ParsedToken* tokens) {\n", output);
+    fputs("\treturn tokens->kind == -1;\n", output);
+    fputs("}\n", output);
+}
+
 static void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) { array[nonterminal.id] = nonterminal; }
 
 void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* settings, ErrorContext* error_context) {
@@ -210,6 +209,7 @@ void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* se
     if (dfa != NULL) {
         generateTokenDeterminer(output, terminals, dfa, settings, error_context);
         generateTokenizer(output, settings);
+        generateUtilFunctions(output, settings);
         disposeRegex(dfa);
     } else {
         for (int i = 0; i < terminals->count; i++) {
