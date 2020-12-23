@@ -4,47 +4,50 @@
 #include "ast.h"
 
 void freeAst(Ast* ast) {
-    switch (ast->type) {
-    case AST_ROOT: {
-        AstRoot* root = (AstRoot*)ast;
-        for (int i = 0; i < root->child_count; i++) {
-            freeAst(root->children[i]);
+    if(ast != NULL) {
+        switch (ast->type) {
+        case AST_ROOT: {
+            AstRoot* root = (AstRoot*)ast;
+            for (int i = 0; i < root->child_count; i++) {
+                freeAst(root->children[i]);
+            }
+            free(root->children);
+        } break;
+        case AST_IDENTIFIER:
+            break;
+        case AST_DEFINITION: {
+            AstDefinition* def = (AstDefinition*)ast;
+            freeAst((Ast*)def->ident);
+            freeAst((Ast*)def->definition);
+        } break;
+        case AST_OPTION: {
+            AstOption* opt = (AstOption*)ast;
+            for (int i = 0; i < opt->option_count; i++) {
+                freeAst((Ast*)opt->options[i]);
+            }
+            free(opt->options);
+        } break;
+        case AST_TOKEN:
+            break;
+        case AST_INLINE_C:
+            break;
+        case AST_SEQUENCE: {
+            AstSequence* seq = (AstSequence*)ast;
+            for (int i = 0; i < seq->child_count; i++) {
+                freeAst(seq->children[i]);
+            }
+            free(seq->children);
+            freeAst((Ast*)seq->code);
+        } break;
+        case AST_SETTING: {
+            AstSetting* set = (AstSetting*)ast;
+            freeAst(set->value);
+        } break;
+        default:
+            break;
         }
-        free(root->children);
-    } break;
-    case AST_IDENTIFIER:
-        break;
-    case AST_DEFINITION: {
-        AstDefinition* def = (AstDefinition*)ast;
-        freeAst((Ast*)def->ident);
-        freeAst((Ast*)def->definition);
-    } break;
-    case AST_OPTION: {
-        AstOption* opt = (AstOption*)ast;
-        for (int i = 0; i < opt->option_count; i++) {
-            freeAst((Ast*)opt->options[i]);
-        }
-        free(opt->options);
-    } break;
-    case AST_TOKEN:
-        break;
-    case AST_INLINE_C:
-        break;
-    case AST_SEQUENCE: {
-        AstSequence* seq = (AstSequence*)ast;
-        for (int i = 0; i < seq->child_count; i++) {
-            freeAst(seq->children[i]);
-        }
-        free(seq->children);
-    } break;
-    case AST_SETTING: {
-        AstSetting* set = (AstSetting*)ast;
-        freeAst(set->value);
-    } break;
-    default:
-        break;
+        free(ast);
     }
-    free(ast);
 }
 
 AstRoot* createAstRoot() {
@@ -129,6 +132,7 @@ AstSequence* createAstSequence() {
     ret->child_capacity = 0;
     ret->child_count = 0;
     ret->children = NULL;
+    ret->code = NULL;
     return ret;
 }
 

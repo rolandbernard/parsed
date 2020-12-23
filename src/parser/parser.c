@@ -48,13 +48,13 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
         freeAst((Ast*)ret);
         return NULL;
     } else {
-        elem = (Ast*)parseInlineC(scanner, error_context);
-        if(elem != NULL) {
-            if(elem == PARSER_ERROR) {
+        AstInlineC* code = parseInlineC(scanner, error_context);
+        if(code != NULL) {
+            if(code == PARSER_ERROR) {
                 freeAst((Ast*)ret);
                 return PARSER_ERROR;
             } else {
-                addChildToAstSequence(ret, elem);
+                ret->code = code;
             }
         }
         return ret;

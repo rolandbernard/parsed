@@ -37,9 +37,16 @@ typedef struct {
 
 typedef struct {
     AST_BASE
+    const char* src;
+    int len;
+} AstInlineC;
+
+typedef struct {
+    AST_BASE
     Ast** children;
     int child_count;
     int child_capacity;
+    AstInlineC* code;
 } AstSequence;
 
 typedef struct {
@@ -55,12 +62,6 @@ typedef struct {
     AstOption* definition;
     int id;
 } AstDefinition;
-
-typedef struct {
-    AST_BASE
-    const char* src;
-    int len;
-} AstInlineC;
 
 typedef struct {
     AST_BASE
