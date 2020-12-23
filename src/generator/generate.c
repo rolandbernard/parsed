@@ -33,6 +33,7 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
             .name_len = def->ident->ident_len,
         };
         def->id = addToNonTerminalTable(nonterminals, token);
+        def->ident->id = def->id;
         searchForTokens((Ast*)def->definition, terminals, nonterminals);
     } break;
     case AST_OPTION: {
