@@ -36,15 +36,17 @@ int parseNestedBlockComments(const char* data, int length) {
 
 %return { double }
 %ignore /\s/
+%ignore /\/\/.*\n/
 %ignore { $length = parseNestedBlockComments($source, $maxlength); }
 
 number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ {
-    const char* string = parsedTokenToString($term[0]);
+    char* string = parsedTokenToString($term[0]);
     $return = strtod(string, NULL);
     free(string);
 };
 
-expr_base := number;
+expr_base := number
+           | '(' expr ')';
 
 expr_pow := expr_base '^' expr_pow { $return = pow($nonterm[0], $nonterm[1]); }
           | expr_base;
@@ -57,7 +59,7 @@ expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
           | expr_add '-' expr_mul { $return = $nonterm[0] - $nonterm[1]; }
           | expr_mul;
 
-expr := expr_mul;
+expr := expr_add;
 
 %{
 int main(int argc, char** argv) {
@@ -69,7 +71,7 @@ int main(int argc, char** argv) {
         } else {
             fprintf(stdout, "%lg\n", ret);
         }
-        freeParsedTokens(tokens);
+        parsedFreeTokens(tokens);
     } else {
         fprintf(stderr, "Usage: %s EXPRESSION\n", argv[0]);
     }
