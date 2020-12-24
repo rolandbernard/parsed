@@ -188,7 +188,7 @@ static void generateUtilFunctions(FILE* output, GeneratorSettings* settings) {
     fputs("\treturn ret;\n", output);
     fputs("}\n", output);
     fputs("\nint parsedReachedEnd(ParsedToken* tokens) {\n", output);
-    fputs("\treturn tokens->kind == -1;\n", output);
+    fputs("\treturn tokens != NULL && tokens->kind == -1;\n", output);
     fputs("}\n", output);
 }
 

@@ -45,8 +45,8 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
         }
     }
     if(ret->child_count == 0) {
-        freeAst((Ast*)ret);
-        return NULL;
+        ret->offset = getOffsetOfNextToken(scanner) - 1;
+        return ret;
     } else {
         AstInlineC* code = parseInlineC(scanner, error_context);
         if(code != NULL) {

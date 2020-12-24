@@ -101,33 +101,43 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
     tabs[depth] = 0;
     int last_written = start;
     bool have_returns = false;
-    fprintf(output, "%s\tswitch (parsed_current->kind) {\n", tabs);
+    bool have_terms = false;
     for (int i = start; i < end; i++) {
         if (sequences[i]->child_count > depth) {
-            if(sequences[i]->children[depth]->type == AST_TOKEN) {
-                if(
-                    i + 1 >= end || sequences[i + 1]->child_count <= depth
-                    || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
-                    || ((AstToken*)sequences[i]->children[depth])->id != ((AstToken*)sequences[i + 1]->children[depth])->id
-                ) {
-                    AstToken* tkn = (AstToken*)sequences[i]->children[depth];
-                    fprintf(output, "%s\tcase %i:\n", tabs, tkn->id);
-                    fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
-                    fprintf(output, "%s\t\tparsed_current++;\n", tabs);
-                    recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
-                    fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
-                    fprintf(output, "%s\t\tparsed_current--;\n", tabs);
-                    fprintf(output, "%s\t\tbreak;\n", tabs);
-                    last_written = i + 1;
-                }
+            if (sequences[i]->children[depth]->type == AST_TOKEN) {
+                have_terms = true;
             }
         } else if (sequences[i]->child_count == depth) {
             have_returns = true;
         }
     }
-    fprintf(output, "%s\tdefault:\n", tabs);
-    fprintf(output, "%s\t\tbreak;\n", tabs);
-    fprintf(output, "%s\t}\n", tabs);
+    if (have_terms) {
+        fprintf(output, "%s\tswitch (parsed_current->kind) {\n", tabs);
+        for (int i = start; i < end; i++) {
+            if (sequences[i]->child_count > depth) {
+                if (sequences[i]->children[depth]->type == AST_TOKEN) {
+                    if (
+                        i + 1 >= end || sequences[i + 1]->child_count <= depth
+                        || sequences[i]->children[depth]->type != sequences[i + 1]->children[depth]->type
+                        || ((AstToken*)sequences[i]->children[depth])->id != ((AstToken*)sequences[i + 1]->children[depth])->id
+                    ) {
+                        AstToken* tkn = (AstToken*)sequences[i]->children[depth];
+                        fprintf(output, "%s\tcase %i:\n", tabs, tkn->id);
+                        fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
+                        fprintf(output, "%s\t\tparsed_current++;\n", tabs);
+                        recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                        fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
+                        fprintf(output, "%s\t\tparsed_current--;\n", tabs);
+                        fprintf(output, "%s\t\tbreak;\n", tabs);
+                        last_written = i + 1;
+                    }
+                }
+            }
+        }
+        fprintf(output, "%s\tdefault:\n", tabs);
+        fprintf(output, "%s\t\tbreak;\n", tabs);
+        fprintf(output, "%s\t}\n", tabs);
+    }
     for (int i = start; i < end; i++) {
         if (sequences[i]->child_count > depth && sequences[i]->children[depth]->type == AST_IDENTIFIER) {
             if(
@@ -143,13 +153,37 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
                     fputs(", ", output);
                     printArgNames(output, settings->args);
                 }
-                fputs(")) != parsed_current) {\n", output);
+                fputs(")) != NULL) {\n", output);
                 fprintf(output, "%s\t\tparsed_numnonterm++;\n", tabs);
                 fprintf(output, "%s\t\tParsedToken* parsed_temp = parsed_current;\n", tabs);
                 fprintf(output, "%s\t\tparsed_current = parsed_next;\n", tabs);
                 recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
                 fprintf(output, "%s\t\tparsed_current = parsed_temp;\n", tabs);
                 fprintf(output, "%s\t\tparsed_numnonterm--;\n", tabs);
+                if (settings->free != NULL) {
+                    AstInlineC* code = settings->free;
+                    fprintf(output, "%s\t\t{\n", tabs);
+                    int last_written = 0;
+                    for (int j = 0; j < code->len; j++) {
+                        if (code->src[j] == '$') {
+                            fwrite(code->src + last_written, 1, j - last_written, output);
+                            int len = 1;
+                            while (isalnum(code->src[j + len]) || code->src[j + len] == '_') {
+                                len++;
+                            }
+                            if (strncmp("$tofree", code->src + j, len) == 0) {
+                                fputs(" parsed_nonterm[parsed_numnonterm] ", output);
+                            } else {
+                                addError(error_context, "Unknown parser variable", code->offset + 1 + j, ERROR);
+                                fwrite(code->src + j, 1, len, output);
+                            }
+                            j += len - 1;
+                            last_written = j + 1;
+                        }
+                    }
+                    fwrite(code->src + last_written, 1, code->len - last_written, output);
+                    fprintf(output, "\n%s\t\t}\n", tabs);
+                }
                 fprintf(output, "%s\t}\n", tabs);
                 last_written = i + 1;
             }
@@ -230,6 +264,7 @@ static void generateNonRecursiveParser(FILE* output, AstOption* option, Generato
     fputs("\tParsedToken* parsed_current = parsed_tokens;\n", output);
     fputs("\tParsedToken* parsed_next = parsed_tokens;\n", output);
     recursiveNonRecursiveParser(output, option->options, 0, option->option_count, 0, settings, error_context);
+    fputs("\treturn NULL;\n", output);
 }
 
 void generateParser(FILE* output, Ast* ast, GeneratorSettings* settings, ErrorContext* error_context) {
