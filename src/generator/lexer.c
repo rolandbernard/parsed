@@ -29,6 +29,7 @@ void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings
     fputs(");\n", output);
     fputs("\nchar* parsedTokenToString(ParsedToken token);\n", output);
     fputs("\nint parsedReachedEnd(ParsedToken* tokens);\n", output);
+    fputs("\nvoid parsedFreeTokens(ParsedToken* tokens);\n", output);
 }
 
 static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Regex dfa, GeneratorSettings* settings, ErrorContext* error_context) {
@@ -106,7 +107,7 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
         fputs("\t\t\tswitch (parsed_len < parsed_max_len ? parsed_start[parsed_len] : -1) {\n", output);
         for (int c = 0; c < REGEX_NUM_CHARS; c++) {
             if (dfa->states[i][c].state_type == REGEX_STATE_NEXT) {
-                if (isprint(c) && c != '\'') {
+                if (isprint(c) && c != '\'' && c != '\\') {
                     fprintf(output, "\t\t\tcase '%c':\n", (char)c);
                 } else {
                     fprintf(output, "\t\t\tcase '\\x%.2x':\n", c);
@@ -189,6 +190,9 @@ static void generateUtilFunctions(FILE* output, GeneratorSettings* settings) {
     fputs("}\n", output);
     fputs("\nint parsedReachedEnd(ParsedToken* tokens) {\n", output);
     fputs("\treturn tokens != NULL && tokens->kind == -1;\n", output);
+    fputs("}\n", output);
+    fputs("\nvoid parsedFreeTokens(ParsedToken* tokens) {\n", output);
+    fputs("\tfree(tokens);\n", output);
     fputs("}\n", output);
 }
 
