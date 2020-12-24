@@ -15,7 +15,7 @@ static void generateSingleFunction(NonTerminal nonterminal, SingleGenUserData* d
     fwrite(nonterminal.name, 1, nonterminal.name_len, data->output);
     fputs("(ParsedToken* parsed_tokens, ", data->output);
     if (data->settings->return_type == NULL) {
-        fputs(" void* parsed_return", data->output);
+        fputs(" void** parsed_return", data->output);
     } else {
         fwrite(data->settings->return_type->src, 1, data->settings->return_type->len, data->output);
         fputs("* parsed_return", data->output);
@@ -345,7 +345,11 @@ void generateParser(FILE* output, Ast* ast, GeneratorSettings* settings, ErrorCo
                     }
                 }
                 fputs("\t", output);
-                fwrite(settings->return_type->src, 1, settings->return_type->len, output);
+                if (settings->return_type == NULL) {
+                    fputs(" void* ", output);
+                } else {
+                    fwrite(settings->return_type->src, 1, settings->return_type->len, output);
+                }
                 fprintf(output, " parsed_nonterm[%i];\n", max_nonterms);
                 fprintf(output, "\tParsedToken parsed_term[%i];\n", max_terms);
                 fputs("\tint parsed_numnonterm = 0;\n", output);

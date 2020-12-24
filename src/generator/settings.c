@@ -27,7 +27,7 @@ void fillSettingsFromAst(GeneratorSettings* settings, Ast* ast, ErrorContext* er
             AstSetting* setting = (AstSetting*)root->children[i];
             if(strncmp("args", setting->name, setting->name_len) == 0) {
                 if(settings->args != NULL) {
-                    addError(error_context, "Found ultiple definitions of %args", setting->offset, ERROR);
+                    addError(error_context, "Found multiple definitions of %args", setting->offset, ERROR);
                 } else if(setting->value->type != AST_INLINE_C) {
                     addError(error_context, "The %args settings must be of inline code type", setting->offset, ERROR);
                 } else {
