@@ -70,18 +70,22 @@ static void quickSortOptionSequences(AstSequence** sequences, int start, int end
     } else if (start + 1 < end) {
         int order_start = start + 1;
         int order_end = end;
+        int pivot_index = (start + end) / 2;
+        AstSequence* tmp = sequences[start];
+        sequences[start] = sequences[pivot_index];
+        sequences[pivot_index] = tmp;
         AstSequence* pivot = sequences[start];
         while(order_start < order_end) {
             if(compareSequences(sequences[order_start], pivot) > 0) {
                 order_end--;
-                AstSequence* tmp = sequences[order_start];
+                tmp = sequences[order_start];
                 sequences[order_start] = sequences[order_end];
                 sequences[order_end] = tmp;
             } else {
                 order_start++;
             }
         }
-        AstSequence* tmp = sequences[order_start - 1];
+        tmp = sequences[order_start - 1];
         sequences[order_start - 1] = sequences[start];
         sequences[start] = tmp;
         quickSortOptionSequences(sequences, start, order_start - 1);
@@ -89,16 +93,15 @@ static void quickSortOptionSequences(AstSequence** sequences, int start, int end
     }
 }
 
-static void generateLeftRecursiveParser(FILE* output, AstOption* option, GeneratorSettings* settings, ErrorContext* error_context) {
-    
-}
-
-static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, int start, int end, int depth, GeneratorSettings* settings, ErrorContext* error_context) {
-    char tabs[depth + 1];
-    for(int i = 0; i < depth; i++) {
+static void recursivelyGenerateParser(
+    FILE* output, AstSequence** sequences, int start, int end, int depth, int tab_depth,
+    GeneratorSettings* settings, ErrorContext* error_context, const char* ret
+) {
+    char tabs[tab_depth + 1];
+    for(int i = 0; i < tab_depth; i++) {
         tabs[i] = '\t';
     }
-    tabs[depth] = 0;
+    tabs[tab_depth] = 0;
     int last_written = start;
     bool have_returns = false;
     bool have_terms = false;
@@ -123,9 +126,10 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
                     ) {
                         AstToken* tkn = (AstToken*)sequences[i]->children[depth];
                         fprintf(output, "%s\tcase %i:\n", tabs, tkn->id);
+                        fprintf(output, "%s\t\tparsed_term[parsed_numterm] = *parsed_current;\n", tabs);
                         fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
                         fprintf(output, "%s\t\tparsed_current++;\n", tabs);
-                        recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                        recursivelyGenerateParser(output, sequences, last_written, i + 1, depth + 1, tab_depth + 1, settings, error_context, ret);
                         fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
                         fprintf(output, "%s\t\tparsed_current--;\n", tabs);
                         fprintf(output, "%s\t\tbreak;\n", tabs);
@@ -157,7 +161,7 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
                 fprintf(output, "%s\t\tparsed_numnonterm++;\n", tabs);
                 fprintf(output, "%s\t\tParsedToken* parsed_temp = parsed_current;\n", tabs);
                 fprintf(output, "%s\t\tparsed_current = parsed_next;\n", tabs);
-                recursiveNonRecursiveParser(output, sequences, last_written, i + 1, depth + 1, settings, error_context);
+                recursivelyGenerateParser(output, sequences, last_written, i + 1, depth + 1, tab_depth + 1, settings, error_context, ret);
                 fprintf(output, "%s\t\tparsed_current = parsed_temp;\n", tabs);
                 fprintf(output, "%s\t\tparsed_numnonterm--;\n", tabs);
                 if (settings->free != NULL) {
@@ -227,43 +231,42 @@ static void recursiveNonRecursiveParser(FILE* output, AstSequence** sequences, i
                 }
             }
         }
-        fprintf(output, "%s\treturn parsed_current;\n", tabs);
+        fprintf(output, "%s\t%s\n", tabs, ret);
     }
 }
 
-static void generateNonRecursiveParser(FILE* output, AstOption* option, GeneratorSettings* settings, ErrorContext* error_context) {
-    quickSortOptionSequences(option->options, 0, option->option_count);
-    int max_nonterms = 1;
-    int max_terms = 1;
+
+static void generateLeftRecursiveParser(FILE* output, AstOption* option, int id, GeneratorSettings* settings, ErrorContext* error_context) {
+    int num_rec = 0;
     for (int i = 0; i < option->option_count; i++) {
-        if (i != 0 && compareSequences(option->options[i - 1], option->options[i]) == 0) {
-            addError(error_context, "Duplicate expantion options", option->options[i]->offset, WARNING);
-        }
-        int num_nonterms = 0;
-        int num_terms = 0;
-        for (int j = 0; j < option->options[i]->child_count; j++) {
-            if (option->options[i]->children[j]->type == AST_TOKEN) {
-                num_terms++;
-            } else {
-                num_nonterms++;
-            }
-        }
-        if (num_terms > max_terms) {
-            max_terms = num_terms;
-        }
-        if (num_nonterms > max_nonterms) {
-            max_nonterms = num_nonterms;
+        if (
+            option->options[i]->child_count > 0 && option->options[i]->children[0]->type == AST_IDENTIFIER
+            && ((AstIdentifier*)option->options[i]->children[0])->id == id
+        ) {
+            AstSequence* tmp = option->options[i];
+            option->options[i] = option->options[num_rec];
+            option->options[num_rec] = tmp;
+            num_rec++;
         }
     }
-    fputs("\t", output);
-    fwrite(settings->return_type->src, 1, settings->return_type->len, output);
-    fprintf(output, " parsed_nonterm[%i];\n", max_terms);
-    fprintf(output, "\tParsedToken parsed_term[%i];\n", max_nonterms);
-    fputs("\tint parsed_numnonterm = 0;\n", output);
-    fputs("\tint parsed_numterm = 0;\n", output);
-    fputs("\tParsedToken* parsed_current = parsed_tokens;\n", output);
-    fputs("\tParsedToken* parsed_next = parsed_tokens;\n", output);
-    recursiveNonRecursiveParser(output, option->options, 0, option->option_count, 0, settings, error_context);
+    quickSortOptionSequences(option->options, 0, num_rec);
+    quickSortOptionSequences(option->options, num_rec, option->option_count);
+    recursivelyGenerateParser(output, option->options, num_rec, option->option_count, 0, 0, settings, error_context, "goto base_case_end;");
+    fputs("\treturn NULL;\n", output);
+    fputs("base_case_end:\n", output);
+    fputs("\tfor (;;) {\n", output);
+    fputs("\t\tparsed_nonterm[0] = *parsed_return;\n", output);
+    fputs("\t\tparsed_numnonterm = 1;\n", output);
+    fputs("\t\tparsed_numterm = 0;\n", output);
+    recursivelyGenerateParser(output, option->options, 0, num_rec, 1, 1, settings, error_context, "goto new_recursive_expantion;");
+    fputs("\t\treturn parsed_current;\n", output);
+    fputs("\tnew_recursive_expantion:\n", output);
+    fputs("\t\tcontinue;\n", output);
+    fputs("\t}\n", output);
+}
+
+static void generateNonRecursiveParser(FILE* output, AstOption* option, int id, GeneratorSettings* settings, ErrorContext* error_context) {
+    recursivelyGenerateParser(output, option->options, 0, option->option_count, 0, 0, settings, error_context, "return parsed_current;");
     fputs("\treturn NULL;\n", output);
 }
 
@@ -288,7 +291,9 @@ void generateParser(FILE* output, Ast* ast, GeneratorSettings* settings, ErrorCo
             }
             fputs(") {\n", output);
             bool is_left_recursive = false;
-            for (int j = 0; !is_left_recursive && j < def->definition->option_count; j++) {
+            bool is_recursive = false;
+            bool has_base = false;
+            for (int j = 0; !(is_left_recursive && is_recursive && has_base) && j < def->definition->option_count; j++) {
                 AstSequence* option = (AstSequence*)def->definition->options[j];
                 if (option->child_count > 0 && option->children[0]->type == AST_IDENTIFIER) {
                     AstIdentifier* first = (AstIdentifier*)option->children[0];
@@ -296,11 +301,62 @@ void generateParser(FILE* output, Ast* ast, GeneratorSettings* settings, ErrorCo
                         is_left_recursive = true;
                     }
                 }
+                bool is_seq_rec = false;
+                for (int i = 0; !is_seq_rec && i < option->child_count; i++) {
+                    if (option->children[i]->type == AST_IDENTIFIER) {
+                        AstIdentifier* first = (AstIdentifier*)option->children[0];
+                        if (first->id == def->id) {
+                            is_seq_rec = true;
+                        }
+                    }
+                }
+                if (is_seq_rec) {
+                    is_recursive = true;
+                } else {
+                    has_base = true;
+                }
             }
-            if (is_left_recursive) {
-                generateLeftRecursiveParser(output, def->definition, settings, error_context);
+            if (is_recursive && !has_base) {
+                // Parsing of recursive definition without base case will never succed
+                addError(error_context, "Missing recursive base case", def->offset, WARNING);
+                fputs("\treturn NULL;\n", output);
             } else {
-                generateNonRecursiveParser(output, def->definition, settings, error_context);
+                quickSortOptionSequences(def->definition->options, 0, def->definition->option_count);
+                int max_nonterms = 1;
+                int max_terms = 1;
+                for (int i = 0; i < def->definition->option_count; i++) {
+                    if (i != 0 && compareSequences(def->definition->options[i - 1], def->definition->options[i]) == 0) {
+                        addError(error_context, "Duplicate expantion options", def->definition->options[i]->offset, WARNING);
+                    }
+                    int num_nonterms = 0;
+                    int num_terms = 0;
+                    for (int j = 0; j < def->definition->options[i]->child_count; j++) {
+                        if (def->definition->options[i]->children[j]->type == AST_TOKEN) {
+                            num_terms++;
+                        } else {
+                            num_nonterms++;
+                        }
+                    }
+                    if (num_terms > max_terms) {
+                        max_terms = num_terms;
+                    }
+                    if (num_nonterms > max_nonterms) {
+                        max_nonterms = num_nonterms;
+                    }
+                }
+                fputs("\t", output);
+                fwrite(settings->return_type->src, 1, settings->return_type->len, output);
+                fprintf(output, " parsed_nonterm[%i];\n", max_nonterms);
+                fprintf(output, "\tParsedToken parsed_term[%i];\n", max_terms);
+                fputs("\tint parsed_numnonterm = 0;\n", output);
+                fputs("\tint parsed_numterm = 0;\n", output);
+                fputs("\tParsedToken* parsed_current = parsed_tokens;\n", output);
+                fputs("\tParsedToken* parsed_next = parsed_tokens;\n", output);
+                if (is_left_recursive) {
+                    generateLeftRecursiveParser(output, def->definition, def->id, settings, error_context);
+                } else {
+                    generateNonRecursiveParser(output, def->definition, def->id, settings, error_context);
+                }
             }
             fputs("}\n", output);
         }
