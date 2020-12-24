@@ -102,6 +102,8 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
             fputs("\t\t\tparsed_length = parsed_len;\n", output);
             if (!to_ignore[dfa->states[i][REGEX_NUM_CHARS].end_point]) {
                 fprintf(output, "\t\t\tparsed_kind = %i;\n", dfa->states[i][REGEX_NUM_CHARS].end_point);
+            } else {
+                fputs("\t\t\tparsed_kind = -2;\n", output);
             }
         }
         fputs("\t\t\tswitch (parsed_len < parsed_max_len ? parsed_start[parsed_len] : -1) {\n", output);
