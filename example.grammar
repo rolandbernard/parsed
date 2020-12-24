@@ -36,7 +36,7 @@ int parseNestedBlockComments(const char* data, int length) {
 
 %return { double }
 %ignore /\s/
-%ignore /\/\/.*\n/
+%ignore /\/\/.*\n?/
 %ignore { $length = parseNestedBlockComments($source, $maxlength); }
 
 number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ {

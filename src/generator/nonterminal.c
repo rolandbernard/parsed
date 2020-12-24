@@ -94,6 +94,7 @@ int addToNonTerminalTable(NonTerminalTable* table, NonTerminal non_terminal) {
         table->count++;
         return non_terminal.id;
     } else {
+        table->data[index].defined = table->data[index].defined || non_terminal.defined;
         return table->data[index].id;
     }
 }
@@ -107,6 +108,7 @@ NonTerminal getFromNonTerminalTable(const NonTerminalTable* table, const char* n
             .name = NULL,
             .name_len = 0,
             .id = -1,
+            .defined = false,
         };
         return ret;
     }

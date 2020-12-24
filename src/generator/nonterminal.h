@@ -1,10 +1,13 @@
 #ifndef _NONTERMINAL_H_
 #define _NONTERMINAL_H_
 
+#include <stdbool.h>
+
 typedef struct {
     const char* name;
     int name_len;
     int id;
+    bool defined;
 } NonTerminal;
 
 typedef struct {

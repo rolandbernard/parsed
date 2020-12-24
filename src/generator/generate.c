@@ -8,12 +8,12 @@
 
 #include "generate.h"
 
-static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable* nonterminals) {
+static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable* nonterminals, ErrorContext* error_context) {
     switch (ast->type) {
     case AST_ROOT: {
         AstRoot* root = (AstRoot*)ast;
         for (int i = 0; i < root->child_count; i++) {
-            searchForTokens(root->children[i], terminals, nonterminals);
+            searchForTokens(root->children[i], terminals, nonterminals, error_context);
         }
     } break;
     case AST_IDENTIFIER: {
@@ -22,6 +22,7 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
             .id = -1,
             .name = ident->ident,
             .name_len = ident->ident_len,
+            .defined = false,
         };
         ident->id = addToNonTerminalTable(nonterminals, token);
     } break;
@@ -32,14 +33,25 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
             .name = def->ident->ident,
             .name_len = def->ident->ident_len,
         };
-        def->id = addToNonTerminalTable(nonterminals, token);
+        token = getFromNonTerminalTable(nonterminals, def->ident->ident, def->ident->ident_len);
+        if (token.defined) {
+            addError(error_context, "Duplicate non terminal name", def->offset, ERROR);
+        } else if (token.id != -1) {
+            def->id = token.id;
+        } else {
+            token.id = -1;
+            token.name = def->ident->ident;
+            token.name_len = def->ident->ident_len;
+            token.defined = true,
+            def->id = addToNonTerminalTable(nonterminals, token);
+        }
         def->ident->id = def->id;
-        searchForTokens((Ast*)def->definition, terminals, nonterminals);
+        searchForTokens((Ast*)def->definition, terminals, nonterminals, error_context);
     } break;
     case AST_OPTION: {
         AstOption* opt = (AstOption*)ast;
         for (int i = 0; i < opt->option_count; i++) {
-            searchForTokens((Ast*)opt->options[i], terminals, nonterminals);
+            searchForTokens((Ast*)opt->options[i], terminals, nonterminals, error_context);
         }
     } break;
     case AST_TOKEN: {
@@ -58,12 +70,12 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
     case AST_SEQUENCE: {
         AstSequence* seq = (AstSequence*)ast;
         for (int i = 0; i < seq->child_count; i++) {
-            searchForTokens(seq->children[i], terminals, nonterminals);
+            searchForTokens(seq->children[i], terminals, nonterminals, error_context);
         }
     } break;
     case AST_SETTING: {
         AstSetting* set = (AstSetting*)ast;
-        searchForTokens(set->value, terminals, nonterminals);
+        searchForTokens(set->value, terminals, nonterminals, error_context);
     } break;
     default:
         break;
@@ -84,10 +96,9 @@ static void writeInlineC(FILE* output, Ast* ast) {
 void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context) {
     NonTerminalTable nonterminals;
     initNonTerminalTable(&nonterminals);
-
     TerminalTable terminals;
     initTerminalTable(&terminals);
-    searchForTokens(ast, &terminals, &nonterminals);
+    searchForTokens(ast, &terminals, &nonterminals, error_context);
 
     GeneratorSettings settings;
     initSettings(&settings);
