@@ -10,7 +10,8 @@ but indirect recursion will result in an infinite loop.
 The generator will read in a file containing the grammar for your parser, and will
 then generate an output C file that contains the lexer and parser for the defined
 grammar. An example of how such a grammar lock can be found in the `example.grammar`
-file in the repository root directory.
+file in the repository root directory. After building using `make`, it can be compiled
+using the command `./build/bin/parsed example.grammar example.c`.
 
 ### Settings
 * Using `%return { type }` the type that will be returned from the parser can be specified.
