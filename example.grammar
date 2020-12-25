@@ -51,15 +51,33 @@ expr_base := number
 expr_pow := expr_base '^' expr_pow { $return = pow($nonterm[0], $nonterm[1]); }
           | expr_base;
 
-expr_mul := expr_mul '*' expr_pow { $return = $nonterm[0] * $nonterm[1]; }
-          | expr_mul '/' expr_pow { $return = $nonterm[0] / $nonterm[1]; }
+expr_not := '!' expr_not { $return = !$nonterm[0]; }
           | expr_pow;
+
+expr_mul := expr_mul '*' expr_not { $return = $nonterm[0] * $nonterm[1]; }
+          | expr_mul '/' expr_not { $return = $nonterm[0] / $nonterm[1]; }
+          | expr_mul '%' expr_not { $return = fmod($nonterm[0], $nonterm[1]); }
+          | expr_not;
 
 expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
           | expr_add '-' expr_mul { $return = $nonterm[0] - $nonterm[1]; }
           | expr_mul;
+         
+expr_cmp := expr_cmp '>' expr_add { $return = $nonterm[0] > $nonterm[1]; }
+          | expr_cmp '>=' expr_add { $return = $nonterm[0] >= $nonterm[1]; }           
+          | expr_cmp '<' expr_add { $return = $nonterm[0] < $nonterm[1]; }           
+          | expr_cmp '<=' expr_add { $return = $nonterm[0] <= $nonterm[1]; }           
+          | expr_cmp '==' expr_add { $return = $nonterm[0] == $nonterm[1]; }           
+          | expr_cmp '!=' expr_add { $return = $nonterm[0] != $nonterm[1]; }           
+          | expr_add;
 
-expr := expr_add;
+expr_and := expr_and '&' expr_cmp { $return = $nonterm[0] && $nonterm[1]; }
+          | expr_cmp;
+         
+expr_or := expr_or '|' expr_and { $return = $nonterm[0] || $nonterm[1]; }
+         | expr_and;
+
+expr := expr_or;
 
 %{
 int main(int argc, char** argv) {
