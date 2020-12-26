@@ -46,7 +46,35 @@ number := /[0-9]+([.][0-9]+)?(e[+-]?[0-9]+)?/ {
 };
 
 expr_base := number
-           | '(' expr ')';
+           | '(' expr ')'
+           | 'abs' '(' expr ')' { $return = fabs($nonterm[0]); }
+           | 'min' '(' expr ',' expr ')' { $return = fmin($nonterm[0], $nonterm[1]); }
+           | 'max' '(' expr ',' expr ')' { $return = fmax($nonterm[0], $nonterm[1]); }
+           | 'exp' '(' expr ')' { $return = exp($nonterm[0]); }
+           | 'exp2' '(' expr ')' { $return = exp2($nonterm[0]); }
+           | 'ln' '(' expr ')' { $return = log($nonterm[0]); }
+           | 'log' '(' expr ',' expr ')' { $return = log($nonterm[1]) / log($nonterm[0]); }
+           | 'log10' '(' expr ')' { $return = log10($nonterm[0]); }
+           | 'log2' '(' expr ')' { $return = log2($nonterm[0]); }
+           | 'sqrt' '(' expr ')' { $return = sqrt($nonterm[0]); }
+           | 'cbrt' '(' expr ')' { $return = cbrt($nonterm[0]); }
+           | 'ceil' '(' expr ')' { $return = ceil($nonterm[0]); }
+           | 'floor' '(' expr ')' { $return = floor($nonterm[0]); }
+           | 'trunc' '(' expr ')' { $return = trunc($nonterm[0]); }
+           | 'round' '(' expr ')' { $return = round($nonterm[0]); }
+           | 'sin' '(' expr ')' { $return = sin($nonterm[0]); }
+           | 'cos' '(' expr ')' { $return = cos($nonterm[0]); }
+           | 'tan' '(' expr ')' { $return = tan($nonterm[0]); }
+           | 'asin' '(' expr ')' { $return = asin($nonterm[0]); }
+           | 'acos' '(' expr ')' { $return = acos($nonterm[0]); }
+           | 'atan' '(' expr ')' { $return = atan($nonterm[0]); }
+           | 'sinh' '(' expr ')' { $return = sinh($nonterm[0]); }
+           | 'cosh' '(' expr ')' { $return = cosh($nonterm[0]); }
+           | 'tanh' '(' expr ')' { $return = tanh($nonterm[0]); }
+           | 'asinh' '(' expr ')' { $return = asinh($nonterm[0]); }
+           | 'acosh' '(' expr ')' { $return = acosh($nonterm[0]); }
+           | 'atanh' '(' expr ')' { $return = atanh($nonterm[0]); }
+           | 'atan2' '(' expr ',' expr ')' { $return = atan2($nonterm[0], $nonterm[1]); };
 
 expr_pow := expr_base '^' expr_pow { $return = pow($nonterm[0], $nonterm[1]); }
           | expr_base;
@@ -62,18 +90,18 @@ expr_mul := expr_mul '*' expr_not { $return = $nonterm[0] * $nonterm[1]; }
 expr_add := expr_add '+' expr_mul { $return = $nonterm[0] + $nonterm[1]; }
           | expr_add '-' expr_mul { $return = $nonterm[0] - $nonterm[1]; }
           | expr_mul;
-         
+
 expr_cmp := expr_cmp '>' expr_add { $return = $nonterm[0] > $nonterm[1]; }
-          | expr_cmp '>=' expr_add { $return = $nonterm[0] >= $nonterm[1]; }           
-          | expr_cmp '<' expr_add { $return = $nonterm[0] < $nonterm[1]; }           
-          | expr_cmp '<=' expr_add { $return = $nonterm[0] <= $nonterm[1]; }           
-          | expr_cmp '==' expr_add { $return = $nonterm[0] == $nonterm[1]; }           
-          | expr_cmp '!=' expr_add { $return = $nonterm[0] != $nonterm[1]; }           
+          | expr_cmp '>=' expr_add { $return = $nonterm[0] >= $nonterm[1]; }
+          | expr_cmp '<' expr_add { $return = $nonterm[0] < $nonterm[1]; }
+          | expr_cmp '<=' expr_add { $return = $nonterm[0] <= $nonterm[1]; }
+          | expr_cmp '==' expr_add { $return = $nonterm[0] == $nonterm[1]; }
+          | expr_cmp '!=' expr_add { $return = $nonterm[0] != $nonterm[1]; }
           | expr_add;
 
 expr_and := expr_and '&' expr_cmp { $return = $nonterm[0] && $nonterm[1]; }
           | expr_cmp;
-         
+
 expr_or := expr_or '|' expr_and { $return = $nonterm[0] || $nonterm[1]; }
          | expr_and;
 
