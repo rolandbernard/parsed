@@ -186,8 +186,9 @@ static void generateTokenizer(FILE* output, GeneratorSettings* settings) {
 
 static void generateUtilFunctions(FILE* output, GeneratorSettings* settings) {
     fputs("\nchar* parsedTokenToString(ParsedToken token) {\n", output);
-    fputs("\tchar* ret = malloc(sizeof(char) * token.len);\n", output);
+    fputs("\tchar* ret = malloc(sizeof(char) * (token.len + 1));\n", output);
     fputs("\tmemcpy(ret, token.start, sizeof(char) * token.len);\n", output);
+    fputs("\tret[token.len] = 0;\n", output);
     fputs("\treturn ret;\n", output);
     fputs("}\n", output);
     fputs("\nint parsedReachedEnd(ParsedToken* tokens) {\n", output);
