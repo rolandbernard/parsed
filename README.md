@@ -6,7 +6,7 @@ It also generates a lexer form the token defined in the grammar.
 This parser generator is relatively simple. It can handle direct left recursion,
 but indirect recursion will result in an infinite loop.
 
-Note: Because this git repository uses submodules, you should either clone it using the `--recurse-submodules`, or run `git submodule update --init --recursive` in the repositories directory after cloning it.
+Note: Because this git repository uses submodules, you should either clone it using the `--recurse-submodules` flag, or run `git submodule update --init --recursive` in the repositories directory after cloning it.
 
 ## How does it work?
 The generator will read in a file containing the grammar for your parser, and will
