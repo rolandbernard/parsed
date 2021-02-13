@@ -8,6 +8,7 @@
 
 void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings) {
     fputs("\n#include <stdlib.h>\n", output);
+    fputs("\n#include <string.h>\n", output);
     fputs("\ntypedef struct {\n", output);
     fputs("\tint kind;\n", output);
     fputs("\tint offset;\n", output);
@@ -222,7 +223,6 @@ void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* se
         for (int i = 0; i < terminals->count; i++) {
             int error = getRegexErrorLocationN(patterns[i], lengths[i]);
             if (is_regexs[i] && error != -1) {
-                fprintf(stderr, "%i\n", lengths[i]);
                 addError(error_context, "Illegal regex pattern", sorted[i].offset + 1 + error, ERROR);
             }
         }
