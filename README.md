@@ -1,3 +1,9 @@
+
+This branch uses Parsed to generate the parser required for parsing the grammar.
+The parser is defined by the grammar in `src/parser/parsed.grammar`. Unfortunatly
+the grammar for the inline code segmants can currently not be represented compleatly.
+Error messages are also not as informative in this version.
+
 Parsed
 ======
 A small parser generator that generates recursive descent parsers.
