@@ -1,0 +1,67 @@
+
+%{
+#include "ast.h"
+#include "errors.h"
+}
+
+%return { Ast* }
+%ignore /\s/
+%ignore /#.*$?/
+%ignore { $length = 0; }
+%free { freeAst($tofree); }
+
+ident := /[_a-zA-Z][_a-zA-Z0-9]*/ { $return = createAstIdentifier($term[0].start, $term[0].len, $term[0].offset); };
+
+token := /\/(\\\/|[^\/])*\// { $return = createAstToken(true, $term[0].start + 1, $term[0].len - 2, $term[0].offset); }
+       | /'(\\\/|[^'])*'/ { $return = createAstToken(false, $term[0].start + 1, $term[0].len - 2, $term[0].offset); }
+       ;
+
+setting_value := inline_c | token;
+
+setting := '%' ident setting_value {
+                $return = createAstSetting(((AstIdentifier*)$nonterm[0])->ident, ((AstIdentifier*)$nonterm[0])->ident_len, $nonterm[1], $nonterm[0]->offset);
+                freeAst($nonterm[0]);
+            };
+
+# This is not elegant. There should be a better way, with unlimited depth.
+inline_c := /\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*)*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*}/ 
+            { $return = createAstInlineC($term[0].start + 1, $term[0].len - 2, $term[0].offset); };
+
+global_c := '%' inline_c;
+
+sequence_element := token | ident;
+
+sequence_rule := { $return = createAstSequence(); }
+               | sequence_rule sequence_element { addChildToAstRoot($nonterm[0], $nonterm[1]); }
+               ;
+
+sequence := sequence_rule
+          | sequence_rule inline_c { ((AstSequence*)$nonterm[0])->code = $nonterm[1]; }
+          ;
+
+options := sequence { $return = createAstOption(); addOptionToAstOption($return, $nonterm[0]); }
+         | options '|' sequence { addOptionToAstOption($nonterm[0], $nonterm[1]); }
+         ;
+
+definition := ident ':=' options ';' { $return = createAstDefinition($nonterm[0], $nonterm[1], $nonterm[0]->offset); };
+
+root_element := setting | global_c | definition;
+
+root := { $return = createAstRoot(); }
+      | root root_element { addChildToAstRoot($nonterm[0], $nonterm[1]); }
+      ;
+
+%{
+Ast* parseGrammar(const char* src, int len, ErrorContext* error_context) {
+    ParsedTokens tokens = parsedTokenize(src, len);
+    Ast* ret = NULL;
+    if(!parsedReachedEnd(parsed_root(tokens, &ret))) {
+        addError(error_context, "Failed to parse the grammar", -1, ERROR);
+        freeAst(ret);
+        ret = NULL;
+    }
+    parsedFreeTokens(tokens);
+    return ret;
+}
+}
+

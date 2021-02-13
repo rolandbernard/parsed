@@ -7,5 +7,7 @@ perf.*
 gmon.*
 ignore.*
 
+src/parser/parser.c
+
 example.c
 example
