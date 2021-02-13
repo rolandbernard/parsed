@@ -82,10 +82,29 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
     }
 }
 
-static void writeInlineC(FILE* output, Ast* ast) {
+static void writePreDefInlineC(FILE* output, Ast* ast) {
     assert(ast->type == AST_ROOT);
     AstRoot* root = (AstRoot*)ast;
-    for(int i = 0; i < root->child_count; i++) {
+    for (int i = 0; i < root->child_count; i++) {
+        if (root->children[i]->type == AST_INLINE_C) {
+            AstInlineC* code = (AstInlineC*)root->children[i];
+            fwrite(code->src, 1, code->len, output);
+        } else {
+            break;
+        }
+    }
+}
+
+static void writePostDefInlineC(FILE* output, Ast* ast) {
+    assert(ast->type == AST_ROOT);
+    AstRoot* root = (AstRoot*)ast;
+    int i = 0;
+    for(; i < root->child_count; i++) {
+        if(root->children[i]->type != AST_INLINE_C) {
+            break;
+        }
+    }
+    for(; i < root->child_count; i++) {
         if(root->children[i]->type == AST_INLINE_C) {
             AstInlineC* code = (AstInlineC*)root->children[i];
             fwrite(code->src, 1, code->len, output);
@@ -104,9 +123,10 @@ void generateLexerAndParser(FILE* output, Ast* ast, ErrorContext* error_context)
     initSettings(&settings);
     fillSettingsFromAst(&settings, ast, error_context);
     
+    writePreDefInlineC(output, ast);
     generateLexerFunctionDeclatations(output, &settings);
     generateParserFunctionDeclatations(output, &nonterminals, &settings);
-    writeInlineC(output, ast);
+    writePostDefInlineC(output, ast);
     generateLexer(output, &terminals, &settings, error_context);
     generateParser(output, ast, &settings, error_context);
 
