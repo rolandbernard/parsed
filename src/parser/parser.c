@@ -44,19 +44,19 @@ AstSequence* parseSequence(Scanner* scanner, ErrorContext* error_context) {
             addChildToAstSequence(ret, elem);
         }
     }
+    AstInlineC* code = parseInlineC(scanner, error_context);
+    if(code != NULL) {
+        if(code == PARSER_ERROR) {
+            freeAst((Ast*)ret);
+            return PARSER_ERROR;
+        } else {
+            ret->code = code;
+        }
+    }
     if(ret->child_count == 0) {
         ret->offset = getOffsetOfNextToken(scanner) - 1;
         return ret;
     } else {
-        AstInlineC* code = parseInlineC(scanner, error_context);
-        if(code != NULL) {
-            if(code == PARSER_ERROR) {
-                freeAst((Ast*)ret);
-                return PARSER_ERROR;
-            } else {
-                ret->code = code;
-            }
-        }
         ret->offset = ret->children[0]->offset;
         return ret;
     }
