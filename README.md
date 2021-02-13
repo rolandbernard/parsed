@@ -1,7 +1,8 @@
 
 This branch uses Parsed to generate the parser required for parsing the grammar.
-The parser is defined by the grammar in `src/parser/parsed.grammar`. Unfortunatly
-the grammar for the inline code segmants can currently not be represented compleatly.
+The parser is defined by the grammar in `src/parser/parsed.grammar`. Unfortunately
+the grammar for the inline code segments can currently not be represented completely.
+(Or at least I can't think of a way to do so.)
 Error messages are also not as informative in this version.
 
 Parsed
