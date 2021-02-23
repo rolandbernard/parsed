@@ -11,10 +11,10 @@ void initScanner(Scanner* scanner, const char* src, int len) {
     scanner->is_cached = false;
 }
 
-static int determenNextToken(const char* src, TokenType* out) {
+static int determenNextToken(const char* src, TokenType* out, int max_length) {
     int len = 1;
     *out = TOKEN_INVALID;
-    if (src[0] == 0) {
+    if (max_length <= 0) {
         len = 0;
         *out = TOKEN_EOF;
     } else if(isalnum(src[0]) || src[0] == '_') {
@@ -24,21 +24,21 @@ static int determenNextToken(const char* src, TokenType* out) {
         *out = TOKEN_IDENTIFIER;
     } else if(src[0] == '{') {
         int nested = 0;
-        while (src[len] != 0 && (nested != 0 || src[len] != '}')) {
+        while (len < max_length && (nested != 0 || src[len] != '}')) {
             if (src[len] == '/' && src[len + 1] == '/') {
                 len++;
-                while (src[len] != 0 && src[len] != '\n') {
+                while (len < max_length && src[len] != '\n') {
                     len++;
                 }
             } else if (src[len] == '/' && src[len + 1] == '*') {
                 len += 2;
-                while (src[len] != 0 && (src[len] != '*' || src[len + 1] != '/')) {
+                while (len < max_length && (src[len - 1] != '*' || src[len] != '/')) {
                     len++;
                 }
             } else if (src[len] == '"') {
                 len++;
-                while (src[len] != 0 && src[len] != '"') {
-                    if (src[len] == '\\' && src[len + 1] == '"') {
+                while (len < max_length && src[len] != '"') {
+                    if (len + 1 < max_length && src[len] == '\\') {
                         len += 2;
                     } else {
                         len++;
@@ -46,8 +46,8 @@ static int determenNextToken(const char* src, TokenType* out) {
                 }
             } else if (src[len] == '\'') {
                 len++;
-                while (src[len] != 0 && src[len] != '\'') {
-                    if (src[len] == '\\' && src[len + 1] == '\'') {
+                while (len < max_length && src[len] != '\'') {
+                    if (len + 1 < max_length && src[len] == '\\') {
                         len += 2;
                     } else {
                         len++;
@@ -58,35 +58,37 @@ static int determenNextToken(const char* src, TokenType* out) {
             } else if (src[len] == '}') {
                 nested--;
             }
-            len++;
+            if (len < max_length) {
+                len++;
+            }
         }
-        if(src[len] == 0) {
+        if(len == max_length) {
             *out = TOKEN_UNCLOSED_C_SOURCE;
         } else {
             len++;
             *out = TOKEN_C_SOURCE;
         }
     } else if(src[0] == '"' || src[0] == '\'') {
-        while (src[len] != 0 && src[len] != src[0]) {
+        while (len < max_length && src[len] != src[0]) {
             if(src[len] == '\\') {
                 len++;
             }
             len++;
         }
-        if(src[len] == 0) {
+        if(len == max_length) {
             *out = TOKEN_UNCLOSED_STRING;
         } else {
             len++;
             *out = TOKEN_STRING_TOKEN;
         }
     } else if(src[0] == '/') {
-        while (src[len] != 0 && src[len] != '/') {
+        while (len < max_length && src[len] != '/') {
             if(src[len] == '\\') {
                 len++;
             }
             len++;
         }
-        if(src[len] == 0) {
+        if(len == max_length) {
             *out = TOKEN_UNCLOSED_REGEX;
         } else {
             len++;
@@ -131,22 +133,14 @@ static int skipComments(Scanner* scanner) {
 Token getNextToken(Scanner* scanner) {
     if(!scanner->is_cached) {
         while(skipWhitespace(scanner) + skipComments(scanner) > 0) { }
-        if(scanner->offset >= scanner->length) {
-            scanner->cached.start = scanner->src + scanner->length;
-            scanner->cached.len = 0;
-            scanner->cached.offset = scanner->length;
-            scanner->cached.type = TOKEN_EOF;
-            scanner->is_cached = true;
-        } else {
-            TokenType type;
-            int len = determenNextToken(scanner->src + scanner->offset, &type);
-            scanner->cached.start = scanner->src + scanner->offset;
-            scanner->cached.len = len;
-            scanner->cached.offset = scanner->offset;
-            scanner->cached.type = type;
-            scanner->offset += len;
-            scanner->is_cached = true;
-        }
+        TokenType type;
+        int len = determenNextToken(scanner->src + scanner->offset, &type, scanner->length - scanner->offset);
+        scanner->cached.start = scanner->src + scanner->offset;
+        scanner->cached.len = len;
+        scanner->cached.offset = scanner->offset;
+        scanner->cached.type = type;
+        scanner->offset += len;
+        scanner->is_cached = true;
     }
     return scanner->cached;
 }
