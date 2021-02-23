@@ -4,12 +4,20 @@
 
 #define PARSER_ERROR (void*)1
 
-AstToken* parseToken(Scanner* scanner, ErrorContext* error_context) {
+Ast* parseToken(Scanner* scanner, ErrorContext* error_context) {
     Token token;
     if(acceptToken(scanner, TOKEN_STRING_TOKEN, &token)) {
-        return createAstToken(false, token.start + 1, token.len - 2, token.offset);
+        return (Ast*)createAstToken(false, token.start + 1, token.len - 2, token.offset);
     } else if(acceptToken(scanner, TOKEN_REGEX_TOKEN, &token)) {
-        return createAstToken(true, token.start + 1, token.len - 2, token.offset);
+        return (Ast*)createAstToken(true, token.start + 1, token.len - 2, token.offset);
+    } else if(acceptToken(scanner, TOKEN_PERCENT, &token)) {
+        Token code;
+        if (acceptToken(scanner, TOKEN_C_SOURCE, &code)) {
+            return (Ast*)createAstInlineC(code.start + 1, code.len - 2, code.offset, true);
+        } else {
+            addError(error_context, "Expected inline c code", getOffsetOfNextToken(scanner), ERROR);
+            return PARSER_ERROR;
+        }
     } else {
         return NULL;
     }
@@ -27,7 +35,7 @@ AstIdentifier* parseIdentifier(Scanner* scanner, ErrorContext* error_context) {
 AstInlineC* parseInlineC(Scanner* scanner, ErrorContext* error_context) {
     Token token;
     if(acceptToken(scanner, TOKEN_C_SOURCE, &token)) {
-        return createAstInlineC(token.start + 1, token.len - 2, token.offset);
+        return createAstInlineC(token.start + 1, token.len - 2, token.offset, false);
     } else {
         return NULL;
     }
@@ -123,7 +131,7 @@ Ast* parseGlobalInlineCOrSetting(Scanner* scanner, ErrorContext* error_context) 
         Token next = getNextToken(scanner);
         if(next.type == TOKEN_C_SOURCE) {
             acceptToken(scanner, TOKEN_C_SOURCE, NULL);
-            return (Ast*)createAstInlineC(next.start + 1, next.len - 2, first.offset);
+            return (Ast*)createAstInlineC(next.start + 1, next.len - 2, first.offset, false);
         } else if(next.type == TOKEN_IDENTIFIER) {
             acceptToken(scanner, TOKEN_IDENTIFIER, NULL);
             Ast* value = (Ast*)parseToken(scanner, error_context);

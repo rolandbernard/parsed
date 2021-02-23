@@ -109,7 +109,12 @@ static void recursivelyGenerateParser(
         if (sequences[i]->child_count > depth) {
             if (sequences[i]->children[depth]->type == AST_TOKEN) {
                 have_terms = true;
-            }
+            } else if (sequences[i]->children[depth]->type == AST_INLINE_C) {
+                AstInlineC* code = (AstInlineC*)sequences[i]->children[depth];
+                if (code->is_token) {
+                    have_terms = true;
+                }
+            } 
         } else if (sequences[i]->child_count == depth) {
             have_returns = true;
         }
@@ -126,6 +131,19 @@ static void recursivelyGenerateParser(
                     ) {
                         AstToken* tkn = (AstToken*)sequences[i]->children[depth];
                         fprintf(output, "%s\tcase %i:\n", tabs, tkn->id);
+                        fprintf(output, "%s\t\tparsed_term[parsed_numterm] = *parsed_current;\n", tabs);
+                        fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
+                        fprintf(output, "%s\t\tparsed_current++;\n", tabs);
+                        recursivelyGenerateParser(output, sequences, last_written, i + 1, depth + 1, tab_depth + 1, settings, error_context, ret);
+                        fprintf(output, "%s\t\tparsed_numterm--;\n", tabs);
+                        fprintf(output, "%s\t\tparsed_current--;\n", tabs);
+                        fprintf(output, "%s\t\tbreak;\n", tabs);
+                        last_written = i + 1;
+                    }
+                } else if (sequences[i]->children[depth]->type == AST_INLINE_C) {
+                    AstInlineC* code = (AstInlineC*)sequences[i]->children[depth];
+                    if (code->is_token) {
+                        fprintf(output, "%s\tcase %i:\n", tabs, code->id);
                         fprintf(output, "%s\t\tparsed_term[parsed_numterm] = *parsed_current;\n", tabs);
                         fprintf(output, "%s\t\tparsed_numterm++;\n", tabs);
                         fprintf(output, "%s\t\tparsed_current++;\n", tabs);

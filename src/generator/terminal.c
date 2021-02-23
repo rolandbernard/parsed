@@ -26,20 +26,21 @@ static unsigned long hashString(const char* str, int len, bool change_primes) {
 }
 
 static void insertIntoData(Terminal* data, int capacity, Terminal token) {
-    int index = hashString(token.pattern, token.pattern_len, token.is_regex) % capacity;
+    int index = hashString(token.pattern, token.pattern_len, token.is_regex || token.is_code) % capacity;
     while(data[index].pattern != NULL && data[index].pattern != DELETED) {
         index = (index + 1) % capacity;
     }
     data[index] = token;
 }
 
-static int findEntry(const Terminal* data, int capacity, const char* pattern, int pattern_len, bool is_regex) {
+static int findEntry(const Terminal* data, int capacity, const char* pattern, int pattern_len, bool is_regex, bool is_code) {
     if(capacity != 0) {
-        int index = hashString(pattern, pattern_len, is_regex) % capacity;
+        int index = hashString(pattern, pattern_len, is_regex || is_code) % capacity;
         while (data[index].pattern != NULL) {
             if (
                 data[index].pattern != DELETED
                 && data[index].is_regex == is_regex
+                && data[index].is_code == is_code
                 && data[index].pattern_len == pattern_len
                 && strncmp(data[index].pattern, pattern,  pattern_len) == 0
             ) {
@@ -88,7 +89,7 @@ static void checkForSizeShrink(TerminalTable* table) {
 
 int addToTerminalTable(TerminalTable* table, Terminal terminal) {
     checkForSizeGrowth(table);
-    int index = findEntry(table->data, table->capacity, terminal.pattern, terminal.pattern_len, terminal.is_regex);
+    int index = findEntry(table->data, table->capacity, terminal.pattern, terminal.pattern_len, terminal.is_regex, terminal.is_code);
     if (index == -1) {
         terminal.id = table->count;
         insertIntoData(table->data, table->capacity, terminal);
@@ -99,8 +100,8 @@ int addToTerminalTable(TerminalTable* table, Terminal terminal) {
     }
 }
 
-Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex) {
-    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex);
+Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex, bool is_code) {
+    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex, is_code);
     if (index != -1) {
         return table->data[index];
     } else {
@@ -108,14 +109,15 @@ Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, i
             .pattern = NULL,
             .pattern_len = 0,
             .is_regex = false,
+            .is_code = false,
             .id = -1,
         };
         return ret;
     }
 }
 
-void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex) {
-    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex);
+void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex, bool is_code) {
+    int index = findEntry(table->data, table->capacity, pattern, pattern_len, is_regex, is_code);
     if (index != -1) {
         table->data[index].pattern = DELETED;
         table->count--;

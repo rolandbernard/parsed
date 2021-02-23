@@ -117,12 +117,13 @@ AstToken* createAstToken(bool is_regex, const char* str, int len, int offset) {
     return ret;
 }
 
-AstInlineC* createAstInlineC(const char* str, int len, int offset) {
+AstInlineC* createAstInlineC(const char* str, int len, int offset, bool is_token) {
     AstInlineC* ret = (AstInlineC*)malloc(sizeof(AstInlineC));
     ret->type = AST_INLINE_C;
     ret->src = str;
     ret->len = len;
     ret->offset = offset;
+    ret->is_token = is_token;
     return ret;
 }
 

@@ -59,14 +59,27 @@ static void searchForTokens(Ast* ast, TerminalTable* terminals, NonTerminalTable
         Terminal token = {
             .id = -1,
             .is_regex = tkn->is_regex,
+            .is_code = false,
             .pattern = tkn->pattern,
             .pattern_len = tkn->pattern_len,
             .offset = tkn->offset,
         };
         tkn->id = addToTerminalTable(terminals, token);
     } break;
-    case AST_INLINE_C:
-        break;
+    case AST_INLINE_C: {
+        AstInlineC* code = (AstInlineC*)ast;
+        if (code->is_token) {
+            Terminal token = {
+                .id = -1,
+                .is_regex = false,
+                .is_code = true,
+                .pattern = code->src,
+                .pattern_len = code->len,
+                .offset = code->offset,
+            };
+            code->id = addToTerminalTable(terminals, token);
+        }
+    } break;
     case AST_SEQUENCE: {
         AstSequence* seq = (AstSequence*)ast;
         for (int i = 0; i < seq->child_count; i++) {

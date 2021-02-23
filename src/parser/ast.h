@@ -39,6 +39,8 @@ typedef struct {
     AST_BASE
     const char* src;
     int len;
+    bool is_token;
+    int id;
 } AstInlineC;
 
 typedef struct {
@@ -94,7 +96,7 @@ void addOptionToAstOption(AstOption* ast, AstSequence* child);
 
 AstToken* createAstToken(bool is_regex, const char* str, int len, int offset);
 
-AstInlineC* createAstInlineC(const char* str, int len, int offset);
+AstInlineC* createAstInlineC(const char* str, int len, int offset, bool is_token);
 
 AstSequence* createAstSequence();
 

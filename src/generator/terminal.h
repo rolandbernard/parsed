@@ -5,6 +5,7 @@
 
 typedef struct {
     bool is_regex;
+    bool is_code;
     const char* pattern;
     int pattern_len;
     int offset;
@@ -23,9 +24,9 @@ void freeTerminalTable(TerminalTable* table);
 
 int addToTerminalTable(TerminalTable* table, Terminal terminal);
 
-Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex);
+Terminal getFromTerminalTable(const TerminalTable* table, const char* pattern, int pattern_len, bool is_regex, bool is_code);
 
-void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex);
+void deleteFromTerminalTable(TerminalTable* table, const char* pattern, int pattern_len, bool is_regex, bool is_code);
 
 typedef void (*TerminalTableIterationFunction)(Terminal, void*);
 

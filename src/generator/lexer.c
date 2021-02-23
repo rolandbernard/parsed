@@ -33,6 +33,48 @@ void generateLexerFunctionDeclatations(FILE* output, GeneratorSettings* settings
     fputs("\nvoid parsedFreeTokens(ParsedToken* tokens);\n", output);
 }
 
+typedef struct {
+    FILE* output;
+    ErrorContext* error_context;
+} InlineCGenerateData;
+
+static void generateInlineCTokenDeterminer(Terminal token, InlineCGenerateData* data) {
+    if (token.is_code) {
+        fputs("\t{\n", data->output);
+        int last_written = 0;
+        for (int j = 0; j < token.pattern_len; j++) {
+            if (token.pattern[j] == '$') {
+                fwrite(token.pattern + last_written, 1, j - last_written, data->output);
+                int len = 1;
+                while (isalnum(token.pattern[j + len]) || token.pattern[j + len] == '_') {
+                    len++;
+                }
+                if (strncmp("$length", token.pattern + j, len) == 0) {
+                    fputs(" parsed_length ", data->output);
+                } else if (strncmp("$source", token.pattern + j, len) == 0) {
+                    fputs(" parsed_start ", data->output);
+                } else if (strncmp("$maxlength", token.pattern + j, len) == 0) {
+                    fputs(" parsed_max_len ", data->output);
+                } else {
+                    addError(data->error_context, "Unknown parser variable", token.offset + 1 + j, ERROR);
+                    fwrite(token.pattern + j, 1, len, data->output);
+                }
+                j += len - 1;
+                last_written = j + 1;
+            }
+        }
+        fwrite(token.pattern + last_written, 1, token.pattern_len - last_written, data->output);
+        fputs("\n\t}\n", data->output);
+        fputs("\tif (parsed_length > 0) {\n", data->output);
+        fprintf(data->output, "\t\tparsed_out->kind = %i;\n", token.id);
+        fputs("\t\tparsed_out->offset = parsed_offset;\n", data->output);
+        fputs("\t\tparsed_out->len = parsed_length;\n", data->output);
+        fputs("\t\tparsed_out->start = parsed_start;\n", data->output);
+        fputs("\t\treturn 0;\n", data->output);
+        fputs("\t}\n", data->output);
+    }
+}
+
 static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Regex dfa, GeneratorSettings* settings, ErrorContext* error_context) {
     bool to_ignore[terminals->count];
     for (int i = 0; i < terminals->count; i++) {
@@ -92,6 +134,11 @@ static void generateTokenDeterminer(FILE* output, TerminalTable* terminals, Rege
             fputs("\t}\n", output);
         }
     }
+    InlineCGenerateData code_gen_data = {
+        .output = output,
+        .error_context = error_context,
+    };
+    forEachInTerminalTable(terminals, (TerminalTableIterationFunction)generateInlineCTokenDeterminer, (void*)&code_gen_data);
     fputs("\tint parsed_state = 0;\n", output);
     fputs("\tint parsed_kind = -2;\n", output);
     fputs("\tint parsed_len = 0;\n", output);
@@ -200,7 +247,9 @@ static void generateUtilFunctions(FILE* output, GeneratorSettings* settings) {
     fputs("}\n", output);
 }
 
-static void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) { array[nonterminal.id] = nonterminal; }
+static void addToSortedTerminalArray(Terminal nonterminal, Terminal* array) {
+    array[nonterminal.id] = nonterminal;
+}
 
 void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* settings, ErrorContext* error_context) {
     Terminal sorted[terminals->count];
@@ -209,9 +258,15 @@ void generateLexer(FILE* output, TerminalTable* terminals, GeneratorSettings* se
     const char* patterns[terminals->count];
     int lengths[terminals->count];
     for (int i = 0; i < terminals->count; i++) {
-        is_regexs[i] = sorted[i].is_regex;
-        patterns[i] = sorted[i].pattern;
-        lengths[i] = sorted[i].pattern_len;
+        if (!sorted[i].is_code) {
+            is_regexs[i] = sorted[i].is_regex;
+            patterns[i] = sorted[i].pattern;
+            lengths[i] = sorted[i].pattern_len;
+        } else {
+            is_regexs[i] = false;
+            patterns[i] = NULL;
+            lengths[i] = 0;
+        }
     }
     Regex dfa = compileMultiMatchingStringsAndRegexN(terminals->count, is_regexs, patterns, lengths);
     if (dfa != NULL) {
