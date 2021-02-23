@@ -7,7 +7,6 @@
 %return { Ast* }
 %ignore /\s/
 %ignore /#.*$?/
-%ignore { $length = 0; }
 %free { freeAst($tofree); }
 
 ident := /[_a-zA-Z][_a-zA-Z0-9]*/ { $return = createAstIdentifier($term[0].start, $term[0].len, $term[0].offset); };
@@ -23,9 +22,61 @@ setting := '%' ident setting_value {
                 freeAst($nonterm[0]);
             };
 
-# This is not elegant. There should be a better way, with unlimited depth.
-inline_c := /\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*\{([^{}]*)*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*})*[^{}]*}/ 
-            { $return = createAstInlineC($term[0].start + 1, $term[0].len - 2, $term[0].offset); };
+%{
+int parseInlineCode(const char* data, int length) {
+    if(data[0] == '{') {
+        int len = 1;
+        int nested = 0;
+        while (len < length && (nested != 0 || data[len] != '}')) {
+            if (data[len] == '/' && data[len + 1] == '/') {
+                len++;
+                while (len < length && data[len] != '\n') {
+                    len++;
+                }
+            } else if (data[len] == '/' && data[len + 1] == '*') {
+                len += 2;
+                while (len < length && (data[len - 1] != '*' || data[len] != '/')) {
+                    len++;
+                }
+            } else if (data[len] == '"') {
+                len++;
+                while (len < length && data[len] != '"') {
+                    if (len + 1 < length && data[len] == '\\') {
+                        len += 2;
+                    } else {
+                        len++;
+                    }
+                }
+            } else if (data[len] == '\'') {
+                len++;
+                while (len < length && data[len] != '\'') {
+                    if (len + 1 < length && data[len] == '\\') {
+                        len += 2;
+                    } else {
+                        len++;
+                    }
+                }
+            } else if (data[len] == '{') {
+                nested++;
+            } else if (data[len] == '}') {
+                nested--;
+            }
+            if (len < length) {
+                len++;
+            }
+        }
+        if (data[len] == '}') {
+            len++;
+        }
+        return len;
+    } else {
+        return 0;
+    }
+}
+}
+
+inline_c := %{ $length = parseInlineCode($source, $maxlength);  }
+             { $return = createAstInlineC($term[0].start + 1, $term[0].len - 2, $term[0].offset); };
 
 global_c := '%' inline_c;
 
