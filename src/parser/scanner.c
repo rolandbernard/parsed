@@ -14,7 +14,10 @@ void initScanner(Scanner* scanner, const char* src, int len) {
 static int determenNextToken(const char* src, TokenType* out) {
     int len = 1;
     *out = TOKEN_INVALID;
-    if(isalnum(src[0]) || src[0] == '_') {
+    if (src[0] == 0) {
+        len = 0;
+        *out = TOKEN_EOF;
+    } else if(isalnum(src[0]) || src[0] == '_') {
         while (isalnum(src[len]) || src[len] == '_') {
             len++;
         }
@@ -22,9 +25,37 @@ static int determenNextToken(const char* src, TokenType* out) {
     } else if(src[0] == '{') {
         int nested = 0;
         while (src[len] != 0 && (nested != 0 || src[len] != '}')) {
-            if(src[len] == '{') {
+            if (src[len] == '/' && src[len + 1] == '/') {
+                len++;
+                while (src[len] != 0 && src[len] != '\n') {
+                    len++;
+                }
+            } else if (src[len] == '/' && src[len + 1] == '*') {
+                len += 2;
+                while (src[len] != 0 && (src[len] != '*' || src[len + 1] != '/')) {
+                    len++;
+                }
+            } else if (src[len] == '"') {
+                len++;
+                while (src[len] != 0 && src[len] != '"') {
+                    if (src[len] == '\\' && src[len + 1] == '"') {
+                        len += 2;
+                    } else {
+                        len++;
+                    }
+                }
+            } else if (src[len] == '\'') {
+                len++;
+                while (src[len] != 0 && src[len] != '\'') {
+                    if (src[len] == '\\' && src[len + 1] == '\'') {
+                        len += 2;
+                    } else {
+                        len++;
+                    }
+                }
+            } else if (src[len] == '{') {
                 nested++;
-            } else if(src[len] == '}') {
+            } else if (src[len] == '}') {
                 nested--;
             }
             len++;
